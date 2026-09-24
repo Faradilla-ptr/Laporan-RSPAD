@@ -1,0 +1,55 @@
+# Environment & Local Configuration
+.env
+.env.backup
+.env.production
+.env.local
+
+# Dependency Directories
+/node_modules
+/vendor
+
+# Storage & Cache
+/storage/*.key
+/storage/pail
+/storage/app/imports/*
+/storage/app/public/*
+/storage/framework/cache/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/public/storage
+/public/build
+/public/hot
+/public/fonts-manifest.dev.json
+
+# Database Files
+*.sqlite
+*.sqlite-journal
+*.db
+
+# Document & Media Attachments / References (Root level)
+/*.zip
+/*.rar
+/*.docx
+/*.xls
+/*.xlsx
+/*.jpeg
+/logo rspad.jpg
+/extracted/
+/populate_kelompok.php
+
+# System & IDE Files
+*.log
+.DS_Store
+Thumbs.db
+.phpunit.result.cache
+/.codex
+/.cursor/
+/.idea
+/.nova
+/.phpunit.cache
+/.vscode
+/.zed
+/auth.json
+_ide_helper.php
+Homestead.json
+Homestead.yaml
