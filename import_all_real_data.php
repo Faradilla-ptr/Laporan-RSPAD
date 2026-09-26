@@ -2,11 +2,6 @@
 
 ini_set('memory_limit', '2048M');
 
-require __DIR__.'/vendor/autoload.php';
-$app = require_once __DIR__.'/bootstrap/app.php';
-$kernel = $app->make(Kernel::class);
-$kernel->bootstrap();
-
 use App\Models\ImportLog;
 use App\Models\RawVisit;
 use App\Models\User;
@@ -16,11 +11,16 @@ use Illuminate\Support\Facades\Schema;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 
+require __DIR__.'/vendor/autoload.php';
+$app = require_once __DIR__.'/bootstrap/app.php';
+$kernel = $app->make(Kernel::class);
+$kernel->bootstrap();
+
 echo "==================================================\n";
-echo "   RE-SEEDING REAL DATA FOR 3 MONTHS (JUN, JUL, AUG)\n";
+echo "   RE-SEEDING REAL DATA FOR 2 MONTHS (JUN & JUL)\n";
 echo "==================================================\n\n";
 
-// 1. Clear old corrupted data
+// 1. Clear old data
 echo "Clearing existing RawVisit and ImportLog records...\n";
 Schema::disableForeignKeyConstraints();
 RawVisit::truncate();
@@ -30,11 +30,76 @@ echo "Tables cleared successfully.\n\n";
 
 $petugas = User::where('role', 'petugas')->first() ?: User::first();
 
+// Only June and July (August excluded per user request)
 $folders = [
     ['path' => base_path('rspad-file/JUNI'), 'month' => 6, 'year' => 2026, 'label' => 'Juni 2026'],
     ['path' => base_path('rspad-file/B. URO'), 'month' => 7, 'year' => 2026, 'label' => 'Juli 2026'],
-    ['path' => base_path('rspad-file/AGUSTUS'), 'month' => 8, 'year' => 2026, 'label' => 'Agustus 2026'],
 ];
+
+function normalizePoliName($rawPoli, $filename)
+{
+    $fn = strtoupper(pathinfo($filename, PATHINFO_FILENAME));
+
+    if (str_contains($fn, 'ANAK')) {
+        return 'BEDAH ANAK';
+    }
+    if (str_contains($fn, 'DIGEST')) {
+        return 'BEDAH DIGESTIF';
+    }
+    if (str_contains($fn, 'ORTO')) {
+        return 'BEDAH ORTOPEDI';
+    }
+    if (str_contains($fn, 'PLASTIK')) {
+        return 'BEDAH PLASTIK';
+    }
+    if (str_contains($fn, 'THORA')) {
+        return 'BEDAH THORAKS';
+    }
+    if (str_contains($fn, 'TUMOR')) {
+        return 'BEDAH TUMOR';
+    }
+    if (str_contains($fn, 'URO')) {
+        return 'BEDAH UROLOGI';
+    }
+    if (str_contains($fn, 'VASKULER')) {
+        return 'BEDAH VASKULER';
+    }
+    if ($fn === 'B. SARAF' || str_starts_with($fn, 'B. SARAF') || str_contains($fn, 'BEDAH SARAF')) {
+        return 'BEDAH SARAF';
+    }
+    if (str_contains($fn, 'SARAF')) {
+        return 'SARAF';
+    }
+    if (str_contains($fn, 'JANTUNG')) {
+        return 'JANTUNG';
+    }
+    if (str_contains($fn, 'MATA')) {
+        return 'MATA';
+    }
+    if (str_contains($fn, 'OBGIN')) {
+        return 'OBGIN';
+    }
+    if (str_contains($fn, 'PARU')) {
+        return 'PARU';
+    }
+    if (str_contains($fn, 'GIGI')) {
+        return 'GIGI & MULUT';
+    }
+    if ($fn === 'PD' || str_contains($fn, 'PD ') || str_contains($fn, 'PENYAKIT DALAM')) {
+        return 'PENYAKIT DALAM';
+    }
+
+    $cleanRaw = trim(strtoupper($rawPoli));
+    if (! empty($cleanRaw)) {
+        if (str_starts_with($cleanRaw, 'PENYAKIT DALAM')) {
+            return 'PENYAKIT DALAM';
+        }
+
+        return $cleanRaw;
+    }
+
+    return $fn;
+}
 
 function parseSheetHeader($sheet)
 {
@@ -217,7 +282,6 @@ foreach ($folders as $fInfo) {
             $reader->setReadDataOnly(true);
             $spreadsheet = $reader->load($filePath);
 
-            // Sheet selection preference: 'R', 'Lap. kunjungan pasien', or Sheet 0
             $sheet = null;
             if ($spreadsheet->sheetNameExists('R')) {
                 $sheet = $spreadsheet->getSheetByName('R');
@@ -239,8 +303,6 @@ foreach ($folders as $fInfo) {
             $startRow = $parsed['header_row'] + 1;
             $colMap = $parsed['col_map'];
             $highestRow = $sheet->getHighestRow();
-
-            $poliFromHeader = pathinfo($filename, PATHINFO_FILENAME);
 
             $importLog = ImportLog::create([
                 'filename' => "{$label}/{$filename}",
@@ -287,7 +349,8 @@ foreach ($folders as $fInfo) {
                 $noBpjs = $getField('no_bpjs');
                 $noTelp = $getField('no_telp');
                 $noHp = $getField('no_hp');
-                $poliklinik = $getField('poliklinik') ?: $poliFromHeader;
+                $rawPoli = $getField('poliklinik');
+                $poliklinik = normalizePoliName($rawPoli, $filename);
                 $dokter = $getField('dokter');
                 $tglBerobatRaw = $getField('tgl_berobat');
                 $jam = $getField('jam');
@@ -301,13 +364,21 @@ foreach ($folders as $fInfo) {
                 $deskIcdUtama = $getField('deskripsi_icd10_utama');
                 $deskIcdSek = $getField('deskripsi_icd10_sekunder');
 
-                // Date formatting
+                // Enforce exact month & year for the folder being imported
                 $mStr = sprintf('%02d', $month);
                 $tglBerobat = "{$year}-{$mStr}-01";
                 if (! empty($tglBerobatRaw)) {
                     $ts = strtotime($tglBerobatRaw);
                     if ($ts) {
-                        $tglBerobat = date('Y-m-d', $ts);
+                        $dStr = date('Y-m-d', $ts);
+                        $targetMonthStr = sprintf('%04d-%02d', $year, $month);
+                        if (str_starts_with($dStr, $targetMonthStr)) {
+                            $tglBerobat = $dStr;
+                        } else {
+                            // If day is valid, retain day within target month
+                            $day = date('d', $ts);
+                            $tglBerobat = "{$year}-{$mStr}-{$day}";
+                        }
                     }
                 }
 
@@ -321,7 +392,7 @@ foreach ($folders as $fInfo) {
                     'umur' => $umur,
                     'no_telp' => $noTelp,
                     'no_hp' => $noHp,
-                    'poliklinik' => $poliklinik ?: $poliFromHeader,
+                    'poliklinik' => $poliklinik,
                     'dokter' => $dokter,
                     'tgl_berobat' => $tglBerobat,
                     'jam' => $jam,
@@ -353,7 +424,6 @@ foreach ($folders as $fInfo) {
                 $totalVisitsInserted++;
             }
 
-            // Batch insert in chunks of 500
             DB::beginTransaction();
             foreach (array_chunk($fileRows, 500) as $chunk) {
                 RawVisit::insert($chunk);
@@ -361,7 +431,7 @@ foreach ($folders as $fInfo) {
             DB::commit();
 
             $importLog->update(['total_rows' => $fileVisitCount]);
-            echo "  [OK] {$filename} => {$fileVisitCount} records inserted.\n";
+            echo "  [OK] {$filename} => {$fileVisitCount} records inserted as '{$poliklinik}'.\n";
 
             $spreadsheet->disconnectWorksheets();
             unset($spreadsheet);

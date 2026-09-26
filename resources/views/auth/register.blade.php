@@ -9,7 +9,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #1A461A 0%, #2A6A2A 50%, #153815 100%);
+        background: linear-gradient(135deg, #4d5350 0%, #5b7653 50%, #4d5350 100%);
         padding: 2rem 1rem;
         position: relative;
         overflow: hidden;
@@ -22,7 +22,7 @@
         width: 450px;
         height: 450px;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(140, 203, 140, 0.18) 0%, rgba(42, 106, 42, 0) 70%);
+        background: radial-gradient(circle, rgba(142, 169, 134, 0.25) 0%, rgba(91, 118, 83, 0) 70%);
         top: -100px;
         left: -100px;
         pointer-events: none;
@@ -34,7 +34,7 @@
         width: 500px;
         height: 500px;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(178, 224, 178, 0.15) 0%, rgba(42, 106, 42, 0) 70%);
+        background: radial-gradient(circle, rgba(128, 159, 119, 0.2) 0%, rgba(91, 118, 83, 0) 70%);
         bottom: -150px;
         right: -100px;
         pointer-events: none;
@@ -56,7 +56,7 @@
     /* Left Hero Banner */
     .auth-hero-banner {
         flex: 1;
-        background: linear-gradient(145deg, #2A6A2A 0%, #1E561E 100%);
+        background: linear-gradient(145deg, #5b7653 0%, #67855e 100%);
         color: #ffffff;
         padding: 3rem 2.5rem;
         display: flex;
@@ -82,7 +82,7 @@
         border-radius: 50px;
         font-size: 0.78rem;
         font-weight: 600;
-        color: #B2E0B2;
+        color: #8ea986;
         border: 1px solid rgba(255, 255, 255, 0.15);
     }
 
@@ -103,7 +103,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #B2E0B2;
+        color: #8ea986;
         flex-shrink: 0;
     }
 
@@ -131,7 +131,7 @@
     }
 
     .form-control-rspad {
-        border: 1.5px solid #CBD5E1;
+        border: 1.5px solid #676c6a;
         border-radius: 10px;
         padding: 0.65rem 0.9rem;
         font-size: 0.88rem;
@@ -139,8 +139,8 @@
     }
 
     .form-control-rspad:focus {
-        border-color: #3B8A3B;
-        box-shadow: 0 0 0 4px rgba(59, 138, 59, 0.15);
+        border-color: #67855e;
+        box-shadow: 0 0 0 4px rgba(103, 133, 94, 0.2);
         outline: none;
     }
 
@@ -151,7 +151,7 @@
         transform: translateY(-50%);
         background: transparent;
         border: none;
-        color: #64748B;
+        color: #565c59;
         cursor: pointer;
         padding: 4px 6px;
         border-radius: 4px;
@@ -160,24 +160,24 @@
     }
 
     .password-toggle-btn:hover {
-        color: #2A6A2A;
+        color: #5b7653;
     }
 
     .btn-rspad-auth {
-        background: linear-gradient(135deg, #2A6A2A 0%, #3B8A3B 100%);
+        background: linear-gradient(135deg, #67855e 0%, #729468 100%);
         color: #ffffff;
         font-weight: 600;
         padding: 0.75rem;
         border-radius: 10px;
         border: none;
         font-size: 0.95rem;
-        box-shadow: 0 4px 12px rgba(42, 106, 42, 0.25);
+        box-shadow: 0 4px 12px rgba(91, 118, 83, 0.25);
         transition: all 0.2s ease;
     }
 
     .btn-rspad-auth:hover {
-        background: linear-gradient(135deg, #1E561E 0%, #2A6A2A 100%);
-        box-shadow: 0 6px 16px rgba(42, 106, 42, 0.35);
+        background: linear-gradient(135deg, #5b7653 0%, #67855e 100%);
+        box-shadow: 0 6px 16px rgba(91, 118, 83, 0.35);
         color: #ffffff;
         transform: translateY(-1px);
     }

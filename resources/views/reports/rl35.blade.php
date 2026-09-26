@@ -3,66 +3,63 @@
 @section('title', 'Laporan RL 3.5 - Rekapitulasi Kunjungan')
 
 @section('content')
-<!-- Title & Header Bar -->
-<div class="d-flex align-items-center justify-content-between mb-3">
-    <h4 class="fw-bold mb-0" style="color: var(--palette-5);">RL 3.5 - Kunjungan</h4>
+
+@if(session('success'))
+<div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
+    <i class="fas me-2">✅</i> {{ session('success') }}
+    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
 </div>
+@endif
 
 <!-- Header Card & Filter Bar -->
 <div class="card-panel p-4 mb-4">
-    <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
-        <button class="btn btn-sm btn-rspad-primary px-3 fw-bold" style="background-color: #588b8b;">+</button>
-        <button class="btn btn-sm text-white fw-medium px-3" style="background-color: #588b8b;" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">Filter</button>
-        <a href="{{ route('reports.rl35.export', ['month' => $month, 'year' => $year, 'poli' => $poli ?? 'SEMUA']) }}" class="btn btn-sm text-white fw-medium px-3" style="background-color: #588b8b;">
-            <i class="fas me-1">📊</i> Download Excel
-        </a>
-        <a href="{{ route('reports.export-zip', ['month' => $month, 'year' => $year]) }}" class="btn btn-sm text-white fw-medium px-3" style="background-color: #2D6A4F;">
-            <i class="fas me-1">📦</i> Download Batch ZIP (Semua Poli)
-        </a>
+    <div class="border-bottom pb-3 mb-3">
+        <h5 class="fw-bold mb-1 text-dark">Laporan RL 3.5 - Rekapitulasi Kunjungan Poliklinik</h5>
+        <p class="text-muted small mb-0">Laporan rekapitulasi total kunjungan pasien baru, lama, dan jenis pembayaran per poliklinik</p>
     </div>
 
-    <!-- Filter Form Collapse -->
-    <div class="collapse show" id="filterCollapse">
-        <form action="{{ route('reports.rl35') }}" method="GET" class="row g-2 align-items-center border-top pt-3 mt-2">
-            <div class="col-md-3">
-                <label class="form-label fw-semibold small text-muted mb-1">Bulan Periode</label>
-                <select name="month" class="form-select form-select-sm">
-                    @foreach(range(1, 12) as $m)
-                        <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>
-                            {{ DateTime::createFromFormat('!m', $m)->format('F') }}
-                        </option>
+    <form action="{{ route('reports.rl35') }}" method="GET" class="row g-2 align-items-end">
+        <div class="col-lg-3 col-md-6">
+            <label class="form-label fw-semibold small text-muted mb-1"><i class="bi bi-calendar-month me-1"></i>Bulan Periode</label>
+            <select name="month" class="form-select form-select-sm">
+                @foreach(range(1, 12) as $m)
+                    <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>
+                        {{ DateTime::createFromFormat('!m', $m)->format('F') }}
+                    </option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-lg-2 col-md-6">
+            <label class="form-label fw-semibold small text-muted mb-1"><i class="bi bi-calendar-event me-1"></i>Tahun Periode</label>
+            <select name="year" class="form-select form-select-sm">
+                @foreach(range(2024, 2030) as $y)
+                    <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>{{ $y }}</option>
+                @endforeach
+            </select>
+        </div>
+        <div class="col-lg-3 col-md-6">
+            <label class="form-label fw-semibold small text-muted mb-1"><i class="bi bi-hospital me-1"></i>Poliklinik</label>
+            <select name="poli" class="form-select form-select-sm">
+                <option value="SEMUA" {{ ($poli ?? 'SEMUA') == 'SEMUA' ? 'selected' : '' }}>-- SEMUA POLIKLINIK --</option>
+                @if(isset($polikliniks))
+                    @foreach($polikliniks as $pName)
+                        <option value="{{ $pName }}" {{ ($poli ?? '') == $pName ? 'selected' : '' }}>{{ $pName }}</option>
                     @endforeach
-                </select>
-            </div>
-            <div class="col-md-3">
-                <label class="form-label fw-semibold small text-muted mb-1">Tahun Periode</label>
-                <select name="year" class="form-select form-select-sm">
-                    @foreach(range(2024, 2030) as $y)
-                        <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>{{ $y }}</option>
-                    @endforeach
-                </select>
-            </div>
-            <div class="col-md-4">
-                <label class="form-label fw-semibold small text-muted mb-1">Poliklinik</label>
-                <select name="poli" class="form-select form-select-sm">
-                    <option value="SEMUA" {{ ($poli ?? 'SEMUA') == 'SEMUA' ? 'selected' : '' }}>-- SEMUA POLIKLINIK --</option>
-                    @if(isset($polikliniks))
-                        @foreach($polikliniks as $pName)
-                            <option value="{{ $pName }}" {{ ($poli ?? '') == $pName ? 'selected' : '' }}>{{ $pName }}</option>
-                        @endforeach
-                    @endif
-                </select>
-            </div>
-            <div class="col-md-2 mt-auto">
-                <button type="submit" class="btn btn-sm btn-rspad-primary w-100 py-1">
-                    Terapkan Filter
-                </button>
-            </div>
-        </form>
-    </div>
+                @endif
+            </select>
+        </div>
+        <div class="col-lg-4 col-md-6 d-flex gap-2">
+            <button type="submit" class="btn btn-sm btn-rspad-primary flex-fill py-2 fw-medium shadow-sm d-flex align-items-center justify-content-center gap-1">
+                <i class="bi bi-funnel-fill"></i> Terapkan Filter
+            </button>
+            <button type="button" class="btn btn-sm btn-rspad-primary flex-fill py-2 fw-medium shadow-sm d-flex align-items-center justify-content-center gap-1" data-bs-toggle="modal" data-bs-target="#exportExcelModal" onclick="document.getElementById('formExportExcel').action='{{ route('reports.rl35.export') }}'">
+                <i class="bi bi-file-earmark-excel-fill"></i> Download Excel
+            </button>
+        </div>
+    </form>
 </div>
 
-<!-- Main Table RL 3.5 (Matching output (2).jpeg) -->
+<!-- Main Table RL 3.5 -->
 <div class="card-panel p-4 mb-4">
     <div class="table-responsive">
         <table class="table table-clean table-bordered table-hover text-nowrap align-middle">
@@ -88,8 +85,65 @@
                     <td class="text-center">{{ $idx + 1 }}</td>
                     <td class="text-center">
                         <div class="d-flex gap-1 justify-content-center">
-                            <button class="btn btn-sm text-white px-2 py-0" style="background-color: #f87171; font-size: 0.75rem;">Hapus</button>
-                            <button class="btn btn-sm text-white px-2 py-0" style="background-color: #a3e635; color: #3f6212 !important; font-size: 0.75rem;">Ubah</button>
+                            <button class="btn btn-sm text-white px-2 py-0" style="background-color: #f87171; font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#deletePoliModal{{ $idx }}">Hapus</button>
+                            <button class="btn btn-sm text-white px-2 py-0" style="background-color: #a3e635; color: #3f6212 !important; font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#editPoliModal{{ $idx }}">Ubah</button>
+                        </div>
+
+                        <!-- EDIT MODAL -->
+                        <div class="modal fade text-start" id="editPoliModal{{ $idx }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <form action="{{ route('reports.rl35.update') }}" method="POST" class="modal-content">
+                                    @csrf
+                                    @method('PUT')
+                                    <input type="hidden" name="month" value="{{ $month }}">
+                                    <input type="hidden" name="year" value="{{ $year }}">
+                                    <input type="hidden" name="poliklinik" value="{{ $p['poliklinik'] }}">
+
+                                    <div class="modal-header" style="background-color: #588b8b; color: white;">
+                                        <h5 class="modal-title fs-6 fw-bold">Ubah Nama Poliklinik</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">Nama Poliklinik Saat Ini:</label>
+                                            <input type="text" class="form-control" value="{{ $p['poliklinik'] }}" readonly>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label fw-semibold">Nama Poliklinik Baru:</label>
+                                            <input type="text" name="new_poliklinik" class="form-control" value="{{ $p['poliklinik'] }}" required>
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                        <button type="submit" class="btn btn-sm text-white" style="background-color: #588b8b;">Simpan Perubahan</button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- DELETE MODAL -->
+                        <div class="modal fade text-start" id="deletePoliModal{{ $idx }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog">
+                                <form action="{{ route('reports.rl35.destroy') }}" method="POST" class="modal-content">
+                                    @csrf
+                                    @method('DELETE')
+                                    <input type="hidden" name="month" value="{{ $month }}">
+                                    <input type="hidden" name="year" value="{{ $year }}">
+                                    <input type="hidden" name="poliklinik" value="{{ $p['poliklinik'] }}">
+
+                                    <div class="modal-header bg-danger text-white">
+                                        <h5 class="modal-title fs-6 fw-bold">Konfirmasi Hapus Data Poliklinik</h5>
+                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                                    </div>
+                                    <div class="modal-body">
+                                        Apakah Anda yakin ingin menghapus seluruh data kunjungan untuk <strong>{{ $p['poliklinik'] }}</strong> pada periode {{ DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }}? Total <strong>{{ number_format($p['total']) }}</strong> data kunjungan akan dihapus. Action ini tidak dapat dibatalkan.
+                                    </div>
+                                    <div class="modal-footer">
+                                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                                        <button type="submit" class="btn btn-sm btn-danger">Hapus Data</button>
+                                    </div>
+                                </form>
+                            </div>
                         </div>
                     </td>
                     <td class="fw-semibold text-dark">{{ $p['poliklinik'] }}</td>
@@ -118,4 +172,6 @@
         </table>
     </div>
 </div>
+
+@include('reports.partials.export_modals')
 @endsection

@@ -3,29 +3,29 @@
 namespace App\Http\Controllers;
 
 use App\Models\RawVisit;
+use App\Services\ExcelReportExporter;
 use Illuminate\Http\Request;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 
 class ReportPuskesadController extends Controller
 {
     public function index(Request $request)
     {
-        $month = $request->input('month', 8);
-        $year  = $request->input('year', 2026);
-        $poli  = $request->input('poli', 'SEMUA');
-
-        $polikliniks = RawVisit::distinct('poliklinik')->pluck('poliklinik')->filter()->sort()->values();
-
-        $query = RawVisit::query();
-        if ($month) {
-            $query->whereMonth('tgl_berobat', $month);
+        $month = (int) $request->input('month', 8);
+        if ($month < 1 || $month > 12) {
+            $month = 8;
         }
-        if ($year) {
-            $query->whereYear('tgl_berobat', $year);
+        $year = (int) $request->input('year', 2026);
+        if ($year < 2000 || $year > 2100) {
+            $year = 2026;
         }
+        $poli = $request->input('poli', 'SEMUA');
+
+        $startDate = sprintf('%04d-%02d-01', $year, $month);
+        $endDate = date('Y-m-t', strtotime($startDate));
+
+        $polikliniks = RawVisit::whereNotNull('poliklinik')->where('poliklinik', '!=', '')->distinct('poliklinik')->pluck('poliklinik')->filter()->sort()->values();
+
+        $query = RawVisit::query()->whereBetween('tgl_berobat', [$startDate, $endDate]);
         if ($poli && $poli !== 'SEMUA') {
             $query->where('poliklinik', $poli);
         }
@@ -38,25 +38,25 @@ class ReportPuskesadController extends Controller
         // Define exact ordered list of Puskesad status categories
         $statusCategories = [
             '1. JKN AKTIF' => [
-                'a. TNI AD' => 'TNI AD',
-                'b. PNS AD' => 'PNS AD',
-                'c. KEL AD' => 'KEL AD',
-                'd. TNI AL' => 'TNI AL',
-                'e. PNS AL' => 'PNS AL',
-                'f. KEL AL' => 'KEL AL',
-                'g. TNI AU' => 'TNI AU',
-                'h. PNS AU' => 'PNS AU',
-                'i. KEL AU' => 'KEL AU',
-                'j. PPPK DINAS' => 'PPPK DINAS',
+                'TNI AD' => 'TNI AD',
+                'PNS AD' => 'PNS AD',
+                'KEL AD' => 'KEL AD',
+                'TNI AL' => 'TNI AL',
+                'PNS AL' => 'PNS AL',
+                'KEL AL' => 'KEL AL',
+                'TNI AU' => 'TNI AU',
+                'PNS AU' => 'PNS AU',
+                'KEL AU' => 'KEL AU',
+                'PPPK DINAS' => 'PPPK DINAS',
             ],
             '2. NON-DINAS / LAINNYA' => [
-                'a. JKN POLRI' => 'JKN POLRI',
-                'b. PURNAWIRAWAN' => 'PURNAWIRAWAN',
-                'c. BPJS KEMENTERIAN / SWASTA' => 'BPJS KEMENTERIAN / SWASTA',
-                'd. BPJS PBI' => 'BPJS PBI',
-                'e. ASURANSI / LAINNYA' => 'ASURANSI / LAIN-LAIN',
-                'f. TUNAI / UMUM' => 'TUNAI',
-            ]
+                'JKN POLRI' => 'JKN POLRI',
+                'PURNAWIRAWAN' => 'PURNAWIRAWAN',
+                'BPJS KEMENTERIAN / SWASTA' => 'BPJS KEMENTERIAN / SWASTA',
+                'BPJS PBI' => 'BPJS PBI',
+                'ASURANSI / LAINNYA' => 'ASURANSI / LAIN-LAIN',
+                'TUNAI / UMUM' => 'TUNAI',
+            ],
         ];
 
         // Process statistics per category
@@ -77,7 +77,7 @@ class ReportPuskesadController extends Controller
                 $pengunjungCount = $matchingVisits->pluck('no_rm')->unique()->count();
 
                 $pengunjungPct = round(($pengunjungCount / $totalPengunjungAll) * 100, 2);
-                $kunjunganPct  = round(($kunjunganCount / $totalKunjunganAll) * 100, 2);
+                $kunjunganPct = round(($kunjunganCount / $totalKunjunganAll) * 100, 2);
 
                 $reportData[$groupName][$label] = [
                     'pengunjung' => $pengunjungCount,
@@ -87,7 +87,7 @@ class ReportPuskesadController extends Controller
                 ];
 
                 $subTotals[$groupName]['pengunjung'] += $pengunjungCount;
-                $subTotals[$groupName]['kunjungan']  += $kunjunganCount;
+                $subTotals[$groupName]['kunjungan'] += $kunjunganCount;
             }
         }
 
@@ -105,13 +105,19 @@ class ReportPuskesadController extends Controller
 
     public function exportExcel(Request $request)
     {
-        $month = $request->input('month', 8);
-        $year  = $request->input('year', 2026);
-        $poli  = $request->input('poli', 'SEMUA');
+        $month = (int) $request->input('month', 8);
+        if ($month < 1 || $month > 12) {
+            $month = 8;
+        }
+        $year = (int) $request->input('year', 2026);
+        if ($year < 2000 || $year > 2100) {
+            $year = 2026;
+        }
+        $poli = $request->input('poli', 'SEMUA');
 
         $poliSlug = ($poli && $poli !== 'SEMUA') ? preg_replace('/[^A-Za-z0-9_\-]/', '_', $poli) : 'SEMUA';
         $filename = "Laporan_Rawat_Jalan_Dinas_Puskesad_{$month}_{$year}_{$poliSlug}.xlsx";
 
-        \App\Services\ExcelReportExporter::exportFullOutput($month, $year, $filename, $poli);
+        return ExcelReportExporter::exportFullOutput($month, $year, $filename, $poli);
     }
 }

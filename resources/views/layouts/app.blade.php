@@ -28,18 +28,34 @@
 
     <style>
         :root {
-            /* User's Exact 5-Color Green Palette */
-            --palette-1: #B2E0B2; /* Light Mint */
-            --palette-2: #8CCB8C; /* Soft Sage Green */
-            --palette-3: #5DAA5D; /* Medium Sage Green */
-            --palette-4: #3B8A3B; /* Deep Forest Green */
-            --palette-5: #2A6A2A; /* Dark Forest Green */
+            /* Option 1: RSPAD Classic Forest Palette */
+            --green-primary: #3B6E4A;
+            --green-darker: #2E5A3C;
+            --green-darkest: #23422E;
+            --green-lighter: #4A855B;
+            --green-lightest: #E8F5E9;
+
+            /* Neutral Slate & Text Palette */
+            --gray-main: #4a5568;
+            --gray-medium: #cbd5e1;
+            --gray-dark: #1e293b;
+
+            /* Danger Red Palette */
+            --red-main: #c84c3b;
+            --red-dark: #a03d2f;
+
+            /* Mapped Variables for App Uniformity */
+            --palette-1: #E8F5E9;
+            --palette-2: #81B29A;
+            --palette-3: #4A855B;
+            --palette-4: #3B6E4A;
+            --palette-5: #2E5A3C;
 
             --sidebar-width: 260px;
             --sidebar-collapsed-width: 72px;
-            --bg-neutral: #f8fafc;
-            --border-color: #e2e8f0;
-            --text-main: #0f172a;
+            --bg-neutral: #f8faf9;
+            --border-color: #cbd5e1;
+            --text-main: #1e293b;
             --text-muted: #64748b;
         }
 
@@ -63,7 +79,7 @@
         /* Left Sidebar Styling */
         .app-sidebar {
             width: var(--sidebar-width);
-            background-color: var(--palette-5);
+            background-color: #23422E;
             color: #ffffff;
             display: flex;
             flex-direction: column;
@@ -72,7 +88,7 @@
             bottom: 0;
             left: 0;
             z-index: 1040;
-            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.12);
+            box-shadow: 2px 0 12px rgba(0, 0, 0, 0.25);
             transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
         }
 
@@ -159,7 +175,7 @@
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.08em;
-            color: var(--palette-2);
+            color: #81B29A;
             padding: 12px 12px 6px 12px;
             white-space: nowrap;
         }
@@ -180,14 +196,14 @@
         }
 
         .sidebar-link svg {
-            color: var(--palette-2);
+            color: #81B29A;
             transition: color 0.2s ease;
             flex-shrink: 0;
         }
 
         .sidebar-link:hover {
             color: #ffffff;
-            background-color: rgba(255, 255, 255, 0.1);
+            background-color: rgba(255, 255, 255, 0.12);
         }
 
         .sidebar-link:hover svg {
@@ -196,14 +212,14 @@
 
         .sidebar-link.active {
             color: #ffffff;
-            background-color: var(--palette-4);
+            background-color: #3B6E4A;
             font-weight: 600;
-            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.15);
-            border-left: 4px solid var(--palette-1);
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.2);
+            border-left: 4px solid #81B29A;
         }
 
         .sidebar-link.active svg {
-            color: var(--palette-1);
+            color: #ffffff;
         }
 
         /* Sidebar Footer (User Info) */
@@ -393,14 +409,14 @@
         }
 
         .table-clean th {
-            background-color: var(--palette-5);
-            color: #ffffff;
-            font-weight: 600;
-            font-size: 0.8rem;
+            background-color: #2E5A3C !important;
+            color: #ffffff !important;
+            font-weight: 700;
+            font-size: 0.82rem;
             text-transform: uppercase;
-            letter-spacing: 0.03em;
-            border-bottom: 1px solid var(--palette-4);
-            padding: 10px 14px;
+            letter-spacing: 0.04em;
+            border-bottom: 2px solid #23422E;
+            padding: 11px 14px;
             vertical-align: middle;
         }
 
@@ -411,31 +427,54 @@
         }
 
         .table-clean tfoot {
-            background-color: rgba(178, 224, 178, 0.25);
+            background-color: #E8F5E9;
             font-weight: 700;
-            color: var(--palette-5);
+            color: #2E5A3C;
         }
 
-        /* Buttons */
-        .btn-rspad-primary {
-            background-color: var(--palette-5);
-            color: #ffffff;
+        /* Buttons Custom Overrides */
+        .btn-primary, .btn-rspad-primary {
+            background-color: var(--green-darker) !important;
+            border-color: var(--green-darker) !important;
+            color: #ffffff !important;
             font-weight: 500;
-            border: 1px solid transparent;
         }
-        .btn-rspad-primary:hover {
-            background-color: var(--palette-4);
-            color: #ffffff;
+        .btn-primary:hover, .btn-primary:focus, .btn-rspad-primary:hover {
+            background-color: var(--green-primary) !important;
+            border-color: var(--green-primary) !important;
+            color: #ffffff !important;
         }
 
-        .btn-outline-rspad {
-            color: var(--palette-5);
-            border-color: var(--palette-3);
-            background-color: transparent;
+        .btn-danger {
+            background-color: var(--red-main) !important;
+            border-color: var(--red-main) !important;
+            color: #ffffff !important;
+            font-weight: 500;
         }
-        .btn-outline-rspad:hover {
-            background-color: var(--palette-5);
-            color: #ffffff;
+        .btn-danger:hover, .btn-danger:focus {
+            background-color: var(--red-dark) !important;
+            border-color: var(--red-dark) !important;
+            color: #ffffff !important;
+        }
+
+        .btn-outline-rspad, .btn-outline-primary {
+            color: var(--green-darker) !important;
+            border-color: var(--green-darker) !important;
+            background-color: transparent !important;
+        }
+        .btn-outline-rspad:hover, .btn-outline-primary:hover {
+            background-color: var(--green-darker) !important;
+            color: #ffffff !important;
+        }
+
+        .btn-outline-danger {
+            color: var(--red-main) !important;
+            border-color: var(--red-main) !important;
+            background-color: transparent !important;
+        }
+        .btn-outline-danger:hover {
+            background-color: var(--red-main) !important;
+            color: #ffffff !important;
         }
 
         /* Footer */

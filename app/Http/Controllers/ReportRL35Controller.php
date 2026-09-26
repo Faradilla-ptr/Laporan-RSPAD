@@ -3,75 +3,63 @@
 namespace App\Http\Controllers;
 
 use App\Models\RawVisit;
+use App\Services\ExcelReportExporter;
 use Illuminate\Http\Request;
-use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
-use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
+use Illuminate\Support\Facades\DB;
 
 class ReportRL35Controller extends Controller
 {
     public function index(Request $request)
     {
-        $month = $request->input('month', 8);
-        $year  = $request->input('year', 2026);
-        $poli  = $request->input('poli', 'SEMUA');
-
-        $polikliniks = RawVisit::distinct('poliklinik')->pluck('poliklinik')->filter()->sort()->values();
-
-        $query = RawVisit::query();
-        if ($month) {
-            $query->whereMonth('tgl_berobat', $month);
+        $month = (int) $request->input('month', (int) date('n'));
+        if ($month < 1 || $month > 12) {
+            $month = (int) date('n');
         }
-        if ($year) {
-            $query->whereYear('tgl_berobat', $year);
+        $year = (int) $request->input('year', (int) date('Y'));
+        if ($year < 2000 || $year > 2100) {
+            $year = (int) date('Y');
         }
+        $poli = $request->input('poli', 'SEMUA');
+
+        $startDate = sprintf('%04d-%02d-01', $year, $month);
+        $endDate = date('Y-m-t', strtotime($startDate));
+
+        $polikliniks = RawVisit::whereNotNull('poliklinik')->where('poliklinik', '!=', '')->distinct('poliklinik')->pluck('poliklinik')->filter()->sort()->values();
+
+        $query = RawVisit::query()->whereBetween('tgl_berobat', [$startDate, $endDate]);
         if ($poli && $poli !== 'SEMUA') {
             $query->where('poliklinik', $poli);
         }
 
-        $visits = $query->get();
+        $workDays = max(1, (clone $query)->distinct('tgl_berobat')->count('tgl_berobat'));
 
-        // Calculate working days in month (approx 22 days or days with visits)
-        $workDays = max(1, $visits->pluck('tgl_berobat')->unique()->count());
+        $poliDataRaw = (clone $query)
+            ->select(
+                'poliklinik',
+                DB::raw("SUM(CASE WHEN (LOWER(COALESCE(alamat, '')) LIKE '%jakarta%' OR LOWER(COALESCE(alamat, '')) LIKE '%dki%') AND (UPPER(COALESCE(gender, 'L')) = 'L') THEN 1 ELSE 0 END) as dalam_kota_l"),
+                DB::raw("SUM(CASE WHEN (LOWER(COALESCE(alamat, '')) LIKE '%jakarta%' OR LOWER(COALESCE(alamat, '')) LIKE '%dki%') AND (UPPER(COALESCE(gender, 'L')) = 'P') THEN 1 ELSE 0 END) as dalam_kota_p"),
+                DB::raw("SUM(CASE WHEN NOT (LOWER(COALESCE(alamat, '')) LIKE '%jakarta%' OR LOWER(COALESCE(alamat, '')) LIKE '%dki%') AND (UPPER(COALESCE(gender, 'L')) = 'L') THEN 1 ELSE 0 END) as luar_kota_l"),
+                DB::raw("SUM(CASE WHEN NOT (LOWER(COALESCE(alamat, '')) LIKE '%jakarta%' OR LOWER(COALESCE(alamat, '')) LIKE '%dki%') AND (UPPER(COALESCE(gender, 'L')) = 'P') THEN 1 ELSE 0 END) as luar_kota_p"),
+                DB::raw('COUNT(*) as total')
+            )
+            ->groupBy('poliklinik')
+            ->orderByDesc('total')
+            ->get();
 
-        // Group by Poliklinik
         $poliData = [];
-        foreach ($visits->groupBy('poliklinik') as $poliName => $items) {
-            $dalamKotaL = 0;
-            $dalamKotaP = 0;
-            $luarKotaL  = 0;
-            $luarKotaP  = 0;
-
-            foreach ($items as $v) {
-                $isDalamKota = str_contains(strtoupper($v->alamat ?? ''), 'JAKARTA') || str_contains(strtoupper($v->alamat ?? ''), 'DKI');
-                $isLaki = strtoupper($v->gender ?? 'L') === 'L';
-
-                if ($isDalamKota) {
-                    if ($isLaki) $dalamKotaL++;
-                    else $dalamKotaP++;
-                } else {
-                    if ($isLaki) $luarKotaL++;
-                    else $luarKotaP++;
-                }
-            }
-
-            $total = $items->count();
-
+        $totalKunjunganAll = 0;
+        foreach ($poliDataRaw as $row) {
             $poliData[] = [
-                'poliklinik' => $poliName,
-                'dalam_kota_l' => $dalamKotaL,
-                'dalam_kota_p' => $dalamKotaP,
-                'luar_kota_l'  => $luarKotaL,
-                'luar_kota_p'  => $luarKotaP,
-                'total'        => $total,
+                'poliklinik' => $row->poliklinik ?: 'LAIN-LAIN',
+                'dalam_kota_l' => (int) $row->dalam_kota_l,
+                'dalam_kota_p' => (int) $row->dalam_kota_p,
+                'luar_kota_l' => (int) $row->luar_kota_l,
+                'luar_kota_p' => (int) $row->luar_kota_p,
+                'total' => (int) $row->total,
             ];
+            $totalKunjunganAll += (int) $row->total;
         }
 
-        // Sort by total descending
-        usort($poliData, fn($a, $b) => $b['total'] <=> $a['total']);
-
-        $totalKunjunganAll = $visits->count();
         $avgPerDay = round($totalKunjunganAll / $workDays, 1);
 
         return view('reports.rl35', compact(
@@ -88,13 +76,65 @@ class ReportRL35Controller extends Controller
 
     public function exportExcel(Request $request)
     {
-        $month = $request->input('month', 8);
-        $year  = $request->input('year', 2026);
-        $poli  = $request->input('poli', 'SEMUA');
+        $month = (int) $request->input('month', (int) date('n'));
+        if ($month < 1 || $month > 12) {
+            $month = (int) date('n');
+        }
+        $year = (int) $request->input('year', (int) date('Y'));
+        if ($year < 2000 || $year > 2100) {
+            $year = (int) date('Y');
+        }
+        $poli = $request->input('poli', 'SEMUA');
 
         $poliSlug = ($poli && $poli !== 'SEMUA') ? preg_replace('/[^A-Za-z0-9_\-]/', '_', $poli) : 'SEMUA';
         $filename = "Laporan_RL_3.5_RSPAD_{$month}_{$year}_{$poliSlug}.xlsx";
 
-        \App\Services\ExcelReportExporter::exportFullOutput($month, $year, $filename, $poli);
+        return ExcelReportExporter::exportRL35($month, $year, $filename, $poli);
+    }
+
+    public function update(Request $request)
+    {
+        $request->validate([
+            'month' => 'required|integer',
+            'year' => 'required|integer',
+            'poliklinik' => 'required|string',
+            'new_poliklinik' => 'required|string',
+        ]);
+
+        $month = (int) $request->month;
+        $year = (int) $request->year;
+        $poliklinik = $request->poliklinik;
+        $newPoliklinik = $request->new_poliklinik;
+
+        $startDate = sprintf('%04d-%02d-01', $year, $month);
+        $endDate = date('Y-m-t', strtotime($startDate));
+
+        $updatedCount = RawVisit::whereBetween('tgl_berobat', [$startDate, $endDate])
+            ->where('poliklinik', $poliklinik)
+            ->update(['poliklinik' => $newPoliklinik]);
+
+        return back()->with('success', "Berhasil memperbarui nama Poliklinik dari '{$poliklinik}' menjadi '{$newPoliklinik}' ({$updatedCount} data terupdate).");
+    }
+
+    public function destroy(Request $request)
+    {
+        $request->validate([
+            'month' => 'required|integer',
+            'year' => 'required|integer',
+            'poliklinik' => 'required|string',
+        ]);
+
+        $month = (int) $request->month;
+        $year = (int) $request->year;
+        $poliklinik = $request->poliklinik;
+
+        $startDate = sprintf('%04d-%02d-01', $year, $month);
+        $endDate = date('Y-m-t', strtotime($startDate));
+
+        $deletedCount = RawVisit::whereBetween('tgl_berobat', [$startDate, $endDate])
+            ->where('poliklinik', $poliklinik)
+            ->delete();
+
+        return back()->with('success', "Berhasil menghapus {$deletedCount} data kunjungan untuk Poliklinik '{$poliklinik}' pada periode ini.");
     }
 }

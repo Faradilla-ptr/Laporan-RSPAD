@@ -4,8 +4,10 @@ namespace App\Http\Controllers;
 
 use App\Models\ImportLog;
 use App\Models\RawVisit;
+use App\Services\ExcelReportExporter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+use Illuminate\Support\Facades\Storage;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\IOFactory;
 use PhpOffice\PhpSpreadsheet\Reader\Csv;
@@ -22,47 +24,54 @@ class ImportController extends Controller
 
     public function store(Request $request)
     {
-        // 1. Comprehensive Validation allowing ALL Excel & Spreadsheet formats
+        ini_set('memory_limit', '2048M');
+        set_time_limit(600);
+
+        // 1. Validation for Excel / Spreadsheet uploads
         $allowedExtensions = ['xls', 'xlsx', 'xlsb', 'xlsm', 'xltx', 'xltm', 'csv', 'tsv', 'txt', 'ods', 'slk', 'xml'];
 
         $request->validate([
-            'excel_file' => 'required|file|max:30720', // Max 30MB
+            'excel_file' => 'required|file|max:30720|mimes:xls,xlsx,xlsb,xlsm,csv,txt,ods,slk,xml', // Max 30MB
             'period_month' => 'required|integer|between:1,12',
             'period_year' => 'required|integer|min:2020|max:2030',
         ], [
             'excel_file.required' => 'Berkas Excel wajib dipilih.',
             'excel_file.file' => 'Berkas yang diunggah tidak valid.',
             'excel_file.max' => 'Ukuran berkas maksimal adalah 30 MB.',
+            'excel_file.mimes' => 'Format berkas tidak didukung. Harap unggah berkas spreadsheet (Excel/CSV).',
         ]);
 
         $file = $request->file('excel_file');
         $ext = strtolower($file->getClientOriginalExtension());
 
-        // Validate extension
         if (! in_array($ext, $allowedExtensions)) {
             return back()->withErrors([
                 'excel_file' => "Format berkas '.{$ext}' tidak didukung. Harap unggah berkas Excel (.xlsx, .xls, .xlsb, .xlsm, .csv, .ods, .tsv, .xml).",
             ])->withInput();
         }
 
-        $fileName = time().'_'.preg_replace('/[^a-zA-Z0-9_\.-]/', '_', $file->getClientOriginalName());
+        // Ensure imports directory exists on local disk
+        Storage::disk('local')->makeDirectory('imports');
+
+        $safeOriginalName = preg_replace('/[^a-zA-Z0-9_\.-]/', '_', basename($file->getClientOriginalName()));
+        $fileName = time().'_'.$safeOriginalName;
         $filePath = $file->storeAs('imports', $fileName, 'local');
-        $fullPath = storage_path('app/'.$filePath);
+        $fullPath = Storage::disk('local')->path($filePath);
 
         try {
-            // 2. Smart Multi-Format Reader Logic
             $spreadsheet = null;
 
             try {
-                // Try standard IOFactory auto-detection (.xlsx, .xls, .csv, .ods, .slk, .xml)
-                $spreadsheet = IOFactory::load($fullPath);
+                $reader = IOFactory::createReaderForFile($fullPath);
+                if (method_exists($reader, 'setReadDataOnly')) {
+                    $reader->setReadDataOnly(true);
+                }
+                $spreadsheet = $reader->load($fullPath);
             } catch (\Exception $e1) {
-                // Fallback 1: Many SIMRS exports generate HTML tables saved with .xls extension
                 try {
                     $htmlReader = new Html;
                     $spreadsheet = $htmlReader->load($fullPath);
                 } catch (\Exception $e2) {
-                    // Fallback 2: CSV / Tab-separated text format
                     try {
                         $csvReader = new Csv;
                         $csvReader->setDelimiter("\t");
@@ -77,7 +86,6 @@ class ImportController extends Controller
                 throw new \Exception('Gagal memproses lembar kerja Excel.');
             }
 
-            // Prefer 'R', 'Lap. kunjungan pasien', or active sheet
             $sheet = null;
             if ($spreadsheet->sheetNameExists('R')) {
                 $sheet = $spreadsheet->getSheetByName('R');
@@ -96,11 +104,9 @@ class ImportController extends Controller
             $colMap = $parsed['col_map'];
             $highestRow = $sheet->getHighestRow();
 
-            $defaultPoli = pathinfo($file->getClientOriginalName(), PATHINFO_FILENAME);
-
             $importLog = ImportLog::create([
                 'filename' => $file->getClientOriginalName(),
-                'user_id' => Auth::id(),
+                'user_id' => Auth::id() ?: 1,
                 'period_month' => $request->period_month,
                 'period_year' => $request->period_year,
                 'total_rows' => 0,
@@ -143,7 +149,8 @@ class ImportController extends Controller
                 $noBpjs = $getField('no_bpjs');
                 $noTelp = $getField('no_telp');
                 $noHp = $getField('no_hp');
-                $poliklinik = $getField('poliklinik') ?: $defaultPoli;
+                $rawPoli = $getField('poliklinik');
+                $poliklinik = $this->normalizePoliName($rawPoli, $file->getClientOriginalName());
                 $dokter = $getField('dokter');
                 $tglBerobatRaw = $getField('tgl_berobat');
                 $jam = $getField('jam');
@@ -157,12 +164,20 @@ class ImportController extends Controller
                 $deskIcdUtama = $getField('deskripsi_icd10_utama');
                 $deskIcdSek = $getField('deskripsi_icd10_sekunder');
 
-                // Parse Date
-                $tglBerobat = sprintf('%04d-%02d-01', $request->period_year, $request->period_month);
+                // Enforce requested month and year for imported visits
+                $mStr = sprintf('%02d', $request->period_month);
+                $yStr = $request->period_year;
+                $tglBerobat = "{$yStr}-{$mStr}-01";
                 if (! empty($tglBerobatRaw)) {
                     $ts = strtotime($tglBerobatRaw);
                     if ($ts) {
-                        $tglBerobat = date('Y-m-d', $ts);
+                        $dStr = date('Y-m-d', $ts);
+                        if (str_starts_with($dStr, "{$yStr}-{$mStr}")) {
+                            $tglBerobat = $dStr;
+                        } else {
+                            $day = date('d', $ts);
+                            $tglBerobat = "{$yStr}-{$mStr}-{$day}";
+                        }
                     }
                 }
 
@@ -176,7 +191,7 @@ class ImportController extends Controller
                     'umur' => $umur,
                     'no_telp' => $noTelp,
                     'no_hp' => $noHp,
-                    'poliklinik' => $poliklinik ?: $defaultPoli,
+                    'poliklinik' => $poliklinik,
                     'dokter' => $dokter,
                     'tgl_berobat' => $tglBerobat,
                     'jam' => $jam,
@@ -212,12 +227,118 @@ class ImportController extends Controller
 
             $importLog->update(['total_rows' => $count]);
 
+            $spreadsheet->disconnectWorksheets();
+            unset($spreadsheet);
+
             return redirect()->route('imports.index')
-                ->with('success', "File Excel '{$file->getClientOriginalName()}' ({$ext}) berhasil diimport! Total {$count} data kunjungan berhasil diproses.");
+                ->with('success', "Berkas Excel '{$file->getClientOriginalName()}' ({$ext}) berhasil diimport! Total {$count} data kunjungan berhasil diproses.");
 
         } catch (\Exception $e) {
             return back()->withErrors(['excel_file' => 'Gagal membaca berkas Excel: '.$e->getMessage()])->withInput();
         }
+    }
+
+    public function destroy($id)
+    {
+        $importLog = ImportLog::findOrFail($id);
+        $filename = $importLog->filename;
+
+        // 1. Delete associated raw visit rows
+        $deletedVisits = RawVisit::where('import_log_id', $importLog->id)->delete();
+
+        // 2. Delete physical file on disk if exists
+        if ($importLog->filename) {
+            Storage::disk('local')->delete('imports/'.$importLog->filename);
+        }
+
+        // 3. Clear export file cache
+        ExcelReportExporter::clearCache();
+
+        // 4. Delete the import log record
+        $importLog->delete();
+
+        return back()->with('success', "Log impor '{$filename}' dan {$deletedVisits} data kunjungannya berhasil dihapus.");
+    }
+
+    public function truncateAll()
+    {
+        // 1. Delete all raw visits and import logs
+        RawVisit::query()->delete();
+        ImportLog::query()->delete();
+
+        // 2. Clean storage imports directory
+        Storage::disk('local')->deleteDirectory('imports');
+        Storage::disk('local')->makeDirectory('imports');
+
+        // 3. Clear export file cache
+        ExcelReportExporter::clearCache();
+
+        return back()->with('success', 'Seluruh data impor dan kunjungan berhasil dikosongkan (0 data). Anda dapat mengunggah berkas Excel baru.');
+    }
+
+    private function normalizePoliName($rawPoli, $filename)
+    {
+        $fn = strtoupper(pathinfo($filename, PATHINFO_FILENAME));
+
+        if (str_contains($fn, 'ANAK')) {
+            return 'BEDAH ANAK';
+        }
+        if (str_contains($fn, 'DIGEST')) {
+            return 'BEDAH DIGESTIF';
+        }
+        if (str_contains($fn, 'ORTO')) {
+            return 'BEDAH ORTOPEDI';
+        }
+        if (str_contains($fn, 'PLASTIK')) {
+            return 'BEDAH PLASTIK';
+        }
+        if (str_contains($fn, 'THORA')) {
+            return 'BEDAH THORAKS';
+        }
+        if (str_contains($fn, 'TUMOR')) {
+            return 'BEDAH TUMOR';
+        }
+        if (str_contains($fn, 'URO')) {
+            return 'BEDAH UROLOGI';
+        }
+        if (str_contains($fn, 'VASKULER')) {
+            return 'BEDAH VASKULER';
+        }
+        if ($fn === 'B. SARAF' || str_starts_with($fn, 'B. SARAF') || str_contains($fn, 'BEDAH SARAF')) {
+            return 'BEDAH SARAF';
+        }
+        if (str_contains($fn, 'SARAF')) {
+            return 'SARAF';
+        }
+        if (str_contains($fn, 'JANTUNG')) {
+            return 'JANTUNG';
+        }
+        if (str_contains($fn, 'MATA')) {
+            return 'MATA';
+        }
+        if (str_contains($fn, 'OBGIN')) {
+            return 'OBGIN';
+        }
+        if (str_contains($fn, 'PARU')) {
+            return 'PARU';
+        }
+        if (str_contains($fn, 'GIGI')) {
+            return 'GIGI & MULUT';
+        }
+        if ($fn === 'PD' || str_contains($fn, 'PD ') || str_contains($fn, 'PENYAKIT DALAM')) {
+            return 'PENYAKIT DALAM';
+        }
+
+        $cleanRaw = trim(strtoupper($rawPoli));
+        if (! empty($cleanRaw)) {
+            if (str_starts_with($cleanRaw, 'PENYAKIT DALAM')) {
+                return 'PENYAKIT DALAM';
+            }
+
+            return $cleanRaw;
+        }
+
+        return $fn;
     }
 
     private function parseSheetHeader($sheet)
@@ -315,6 +436,15 @@ class ImportController extends Controller
     {
         $kel = trim(strtoupper($kelompokRaw));
         if (! empty($kel) && ! in_array($kel, ['--', 'TIDAK ADA', 'NULL'])) {
+            if (in_array($kel, [
+                'AD', 'AL', 'AU', 'KEL AD', 'KEL AL', 'KEL AU',
+                'PNS AD', 'PNS AL', 'PNS AU', 'MILITER TNI AD', 'KELUARGA MILITER',
+                'PNS KEMHAN/TNI', 'PPPK DINAS', 'PPPK KEMENTRIAN', 'BPJS PBI',
+                'BPJS MANDIRI / SWASTA', 'UMUM / TUNAI', 'PURNAWIRAWAN', 'POLRI',
+            ])) {
+                return $kel;
+            }
+
             if (str_contains($kel, 'MILITER') || str_contains($kel, 'TNI AD') || $kel === 'TNI AD') {
                 return 'MILITER TNI AD';
             }

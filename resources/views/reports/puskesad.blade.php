@@ -7,17 +7,14 @@
 <div class="card-panel p-4 mb-4">
     <div class="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3 border-bottom pb-3">
         <div>
-            <h5 class="fw-bold mb-1" style="color: var(--palette-5);">LAPORAN PELAYANAN RAWAT JALAN DINAS (PUSKESAD)</h5>
+            <h5 class="fw-bold mb-1 text-dark">Laporan Pelayanan Rawat Jalan Dinas (Puskesad)</h5>
             <span class="text-muted small">Laporan Status Pasien & Golongan Personel ke Pusat Kesehatan Angkatan Darat</span>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('reports.puskesad.export', ['month' => $month, 'year' => $year, 'poli' => $poli ?? 'SEMUA']) }}" class="btn btn-sm btn-outline-rspad d-flex align-items-center gap-1">
+            <button type="button" class="btn btn-sm btn-outline-rspad d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#exportExcelModal" onclick="document.getElementById('formExportExcel').action='{{ route('reports.puskesad.export') }}'">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 Export Excel (.xlsx)
-            </a>
-            <a href="{{ route('reports.export-zip', ['month' => $month, 'year' => $year]) }}" class="btn btn-sm btn-rspad-primary d-flex align-items-center gap-1" style="background-color: #2D6A4F;">
-                📦 Batch ZIP (Semua Poli)
-            </a>
+            </button>
             <button onclick="window.print()" class="btn btn-sm btn-rspad-primary d-flex align-items-center gap-1">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
                 Cetak Laporan
@@ -123,4 +120,6 @@
         </table>
     </div>
 </div>
+
+@include('reports.partials.export_modals')
 @endsection

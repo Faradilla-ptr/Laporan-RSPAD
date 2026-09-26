@@ -36,7 +36,17 @@
 /logo rspad.jpg
 /extracted/
 /rspad-file/
+
+# Temporary Test & Scratch Scripts
+/scratch/
+/check_active_db.php
+/check_db_count.php
+/import_all_real_data.php
+/import_3_months_data.py
 /populate_kelompok.php
+/test_connections.php
+/test_generated_export.xlsx
+/test_insert.php
 
 # System & IDE Files
 *.log

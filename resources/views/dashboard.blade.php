@@ -7,19 +7,11 @@
 <div class="card-panel p-4 mb-4" style="border-left: 5px solid var(--palette-5);">
     <form action="{{ route('dashboard') }}" method="GET" class="row g-3 align-items-center">
         <div class="col-lg-5 col-md-12">
-            <div class="d-flex align-items-center gap-2">
-                <div class="p-2 rounded-3 text-white" style="background-color: var(--palette-5);">
-                    <i class="bi bi-speedometer2 fs-4"></i>
-                </div>
-                <div>
-                    <h5 class="fw-bold mb-0 text-dark">Dashboard Rekapitulasi Pelaporan SIMRS</h5>
-                    <span class="text-muted small">
-                        Periode Aktif: <strong>{{ $availableMonths[$month] ?? '' }} {{ $year }}</strong>
-                        <span class="badge ms-2" style="background-color: var(--palette-1); color: var(--palette-5); font-size: 0.75rem;">
-                            <i class="bi bi-database-check me-1"></i> Data Terverifikasi
-                        </span>
-                    </span>
-                </div>
+            <div>
+                <h5 class="fw-bold mb-0 text-dark">Dashboard Rekapitulasi Pelaporan SIMRS</h5>
+                <span class="text-muted small">
+                    Periode Aktif: <strong>{{ $availableMonths[$month] ?? '' }} {{ $year }}</strong>
+                </span>
             </div>
         </div>
         <div class="col-lg-3 col-md-4">

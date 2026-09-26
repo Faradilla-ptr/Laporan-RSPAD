@@ -8,7 +8,7 @@
     <div class="col-md-5">
         <div class="card-panel p-4">
             <div class="border-bottom pb-3 mb-3">
-                <h5 class="fw-bold mb-1" style="color: var(--palette-5);">Import File Excel SIMRS</h5>
+                <h5 class="fw-bold mb-1 text-dark">Import File Excel SIMRS</h5>
                 <p class="text-muted small mb-0">Unggah berkas tarikan kedatangan kunjungan dari SIMRS RSPAD</p>
             </div>
 
@@ -59,13 +59,21 @@
     <!-- Import History Table -->
     <div class="col-md-7">
         <div class="card-panel p-4">
-            <div class="border-bottom pb-3 mb-3">
-                <h5 class="fw-bold mb-1" style="color: var(--palette-5);">Riwayat Pengunggahan File</h5>
-                <p class="text-muted small mb-0">Daftar berkas SIMRS yang telah diproses ke dalam database</p>
+            <div class="d-flex align-items-center justify-content-between border-bottom pb-3 mb-3">
+                <div>
+                    <h5 class="fw-bold mb-1 text-dark">Riwayat Pengunggahan File</h5>
+                    <p class="text-muted small mb-0">Daftar berkas SIMRS yang telah diproses ke dalam database</p>
+                </div>
+                @if($importLogs->count() > 0 || \App\Models\RawVisit::count() > 0)
+                <button type="button" class="btn btn-outline-danger btn-sm fw-semibold d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#modalTruncateAll">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                    Hapus Semua Data
+                </button>
+                @endif
             </div>
 
             <div class="table-responsive">
-                <table class="table table-clean table-hover text-nowrap">
+                <table class="table table-clean table-hover text-nowrap align-middle">
                     <thead>
                         <tr>
                             <th>No</th>
@@ -74,6 +82,7 @@
                             <th class="text-center">Jumlah Baris</th>
                             <th>Petugas Import</th>
                             <th>Waktu Upload</th>
+                            <th class="text-center">Aksi</th>
                         </tr>
                     </thead>
                     <tbody>
@@ -89,10 +98,43 @@
                             </td>
                             <td>{{ $log->user->name ?? 'System' }}</td>
                             <td class="text-muted small">{{ $log->created_at->format('d/m/Y H:i') }}</td>
+                            <td class="text-center">
+                                <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2 text-decoration-none d-inline-flex align-items-center gap-1"
+                                        data-bs-toggle="modal" data-bs-target="#modalDeleteLog{{ $log->id }}" title="Hapus berkas ini beserta datanya">
+                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                                    Hapus
+                                </button>
+                            </td>
                         </tr>
+
+                        <!-- Modal Delete Single Log -->
+                        <div class="modal fade" id="modalDeleteLog{{ $log->id }}" tabindex="-1" aria-hidden="true">
+                            <div class="modal-dialog modal-dialog-centered">
+                                <div class="modal-content">
+                                    <div class="modal-header border-bottom-0 pb-0">
+                                        <h6 class="modal-title fw-bold text-danger">Konfirmasi Hapus File Import</h6>
+                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                                    </div>
+                                    <div class="modal-body py-3">
+                                        <p class="mb-2">Apakah Anda yakin ingin menghapus berkas import <strong>{{ $log->filename }}</strong>?</p>
+                                        <div class="alert alert-warning small mb-0 py-2">
+                                             Tindakan ini akan menghapus seluruh <strong>{{ number_format($log->total_rows) }} baris data kunjungan</strong> yang terkait dengan file ini dari database.
+                                        </div>
+                                    </div>
+                                    <div class="modal-footer border-top-0 pt-0">
+                                        <button type="button" class="btn btn-light btn-sm fw-semibold" data-bs-dismiss="modal">Batal</button>
+                                        <form action="{{ route('imports.destroy', $log->id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-danger btn-sm fw-semibold">Ya, Hapus Data</button>
+                                        </form>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
                         @empty
                         <tr>
-                            <td colspan="6" class="text-center text-muted py-3">Belum ada riwayat pengunggahan.</td>
+                            <td colspan="7" class="text-center text-muted py-4">Belum ada riwayat pengunggahan file.</td>
                         </tr>
                         @endforelse
                     </tbody>
@@ -101,6 +143,32 @@
 
             <div class="mt-3">
                 {{ $importLogs->links() }}
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal Truncate All Data -->
+<div class="modal fade" id="modalTruncateAll" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h6 class="modal-title fw-bold text-danger">Kosongkan Seluruh Data SIMRS (Reset 0)</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <p class="mb-2">Apakah Anda yakin ingin menghapus <strong>SELURUH data kunjungan dan riwayat import</strong> dari sistem?</p>
+                <div class="alert alert-danger small mb-0 py-2">
+                     <strong>PERINGATAN:</strong> Seluruh {{ number_format(\App\Models\RawVisit::count()) }} data kunjungan akan dihapus permanen dari database. Aplikasi akan kembali menjadi 0 data sehingga Anda dapat mengunggah berkas Excel baru dari awal.
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm fw-semibold" data-bs-dismiss="modal">Batal</button>
+                <form action="{{ route('imports.truncateAll') }}" method="POST" class="d-inline">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger btn-sm fw-semibold">Ya, Hapus Semua (Reset 0)</button>
+                </form>
             </div>
         </div>
     </div>

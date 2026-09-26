@@ -2,61 +2,536 @@
 
 namespace App\Services;
 
-use App\Models\RawVisit;
+use Illuminate\Support\Facades\DB;
+use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
-use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
-use PhpOffice\PhpSpreadsheet\Style\Fill;
 use PhpOffice\PhpSpreadsheet\Style\Border;
-use PhpOffice\PhpSpreadsheet\Cell\DataType;
+use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
 
 class ExcelReportExporter
 {
+    private static function getCachePath($type, $month, $year, $poli)
+    {
+        $dir = storage_path('app/exports');
+        if (! is_dir($dir)) {
+            @mkdir($dir, 0777, true);
+        }
+        $pSlug = preg_replace('/[^a-zA-Z0-9_\-]/', '_', $poli ?: 'SEMUA');
+
+        return "{$dir}/{$type}_{$month}_{$year}_{$pSlug}.xlsx";
+    }
+
+    public static function clearCache()
+    {
+        $dir = storage_path('app/exports');
+        if (is_dir($dir)) {
+            $files = glob("{$dir}/*.xlsx");
+            foreach ($files as $f) {
+                @unlink($f);
+            }
+        }
+    }
+
+    /**
+     * Normalize Pasien Status to 'Pasien Baru' or 'Pasien Lama'
+     */
+    public static function normalizeStatus($status)
+    {
+        $st = strtolower(trim((string) $status));
+        if (str_contains($st, 'baru') || $st === 'b') {
+            return 'Pasien Baru';
+        }
+
+        return 'Pasien Lama';
+    }
+
+    /**
+     * Normalize Gender to 'L' or 'P'
+     */
+    public static function normalizeGender($gender)
+    {
+        $g = strtoupper(trim((string) $gender));
+        if (str_starts_with($g, 'P') || str_starts_with($g, 'F') || str_contains($g, 'WANITA') || str_contains($g, 'PEREMPUAN')) {
+            return 'P';
+        }
+
+        return 'L';
+    }
+
+    /**
+     * Normalize Kelompok Name (splits PNS KEMHAN/TNI to PNS AD / AL / AU, KELUARGA MILITER to KEL AD)
+     */
+    public static function normalizeKelompokName($v)
+    {
+        static $alRms = null;
+        static $auRms = null;
+
+        if ($alRms === null) {
+            $alRms = DB::table('raw_visits')
+                ->whereIn('kelompok', ['AL', 'KEL AL', 'PNS AL'])
+                ->pluck('no_rm')
+                ->filter()
+                ->unique()
+                ->flip()
+                ->toArray();
+
+            $auRms = DB::table('raw_visits')
+                ->whereIn('kelompok', ['AU', 'KEL AU', 'PNS AU'])
+                ->pluck('no_rm')
+                ->filter()
+                ->unique()
+                ->flip()
+                ->toArray();
+        }
+
+        $kel = trim((string) (is_object($v) ? ($v->kelompok ?? '') : ($v['kelompok'] ?? '')));
+        $kelUpper = strtoupper($kel);
+        $kesatuan = strtoupper(trim((string) (is_object($v) ? ($v->kesatuan ?? '') : ($v['kesatuan'] ?? ''))));
+        $instansi = strtoupper(trim((string) (is_object($v) ? ($v->instansi ?? '') : ($v['instansi'] ?? ''))));
+        $pangkat = strtoupper(trim((string) (is_object($v) ? ($v->pangkat ?? '') : ($v['pangkat'] ?? ''))));
+        $rm = trim((string) (is_object($v) ? ($v->no_rm ?? '') : ($v['no_rm'] ?? '')));
+
+        if (in_array($kelUpper, ['AD', 'AL', 'AU', 'KEL AD', 'KEL AL', 'KEL AU', 'PNS AD', 'PNS AL', 'PNS AU', 'MILITER TNI AD', 'PPPK DINAS', 'PPPK KEMENTRIAN', 'BPJS PBI', 'BPJS MANDIRI / SWASTA', 'UMUM / TUNAI', 'PURNAWIRAWAN', 'POLRI'])) {
+            return $kel;
+        }
+
+        if ($kelUpper === 'KELUARGA MILITER') {
+            return 'KEL AD';
+        }
+
+        if ($kelUpper === 'PNS KEMHAN/TNI' || $kelUpper === 'PNS' || str_contains($kelUpper, 'PNS')) {
+            $alKeywords = ['MABESAL', 'DISKUAL', 'DISPENAL', 'KOARMARDA', 'KOLINLAMIL', 'LANTAMAL', 'MARINIR', 'TNI AL', ' AL '];
+            foreach ($alKeywords as $kw) {
+                if (str_contains($kesatuan, $kw) || str_contains($instansi, $kw) || str_contains($pangkat, $kw)) {
+                    return 'PNS AL';
+                }
+            }
+
+            $auKeywords = ['KOOPSAU', 'RSAU', 'MABESAU', 'LANUD', 'TNI AU', ' AU '];
+            foreach ($auKeywords as $kw) {
+                if (str_contains($kesatuan, $kw) || str_contains($instansi, $kw) || str_contains($pangkat, $kw)) {
+                    return 'PNS AU';
+                }
+            }
+
+            if (isset($alRms[$rm])) {
+                return 'PNS AL';
+            }
+            if (isset($auRms[$rm])) {
+                return 'PNS AU';
+            }
+
+            return 'PNS AD';
+        }
+
+        return $kel;
+    }
+
+    /**
+     * Full Output Export (All 7 Sheets for Laporan Puskesad / Full Report)
+     */
     public static function exportFullOutput($month, $year, $filename = null, $poli = null, $savePath = null)
     {
-        $query = RawVisit::query();
-        if ($month) {
-            $query->whereMonth('tgl_berobat', $month);
+        ini_set('memory_limit', '1024M');
+        set_time_limit(300);
+
+        $m = (int) ($month ?: date('m'));
+        $y = (int) ($year ?: date('Y'));
+        $startDate = sprintf('%04d-%02d-01', $y, $m);
+        $endDate = date('Y-m-t', strtotime($startDate));
+
+        $cacheFile = self::getCachePath('puskesad', $m, $y, $poli);
+
+        if (! $savePath && file_exists($cacheFile) && filesize($cacheFile) > 0) {
+            if (! $filename) {
+                $filename = "Laporan_Puskesad_RSPAD_{$m}_{$y}.xlsx";
+            }
+
+            return response()->download($cacheFile, $filename, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ]);
         }
-        if ($year) {
-            $query->whereYear('tgl_berobat', $year);
-        }
+
+        $targetFile = $savePath ?: $cacheFile;
+
+        $query = DB::table('raw_visits')->whereBetween('tgl_berobat', [$startDate, $endDate]);
         if ($poli && $poli !== 'SEMUA') {
             $query->where('poliklinik', $poli);
         }
 
         $visits = $query->orderBy('tgl_berobat')->orderBy('id')->get();
 
-        $spreadsheet = new Spreadsheet();
+        $spreadsheet = new Spreadsheet;
 
-        // Standard colors
         $darkGreenHeader = '2A6A2A';
-        $lightGreenTotal = 'E8F5E9';
-        $borderColor     = 'D0D0D0';
-
-        $mStr = sprintf('%02d', $month ?: date('m'));
-        $yStr = $year ?: date('Y');
+        $mStr = sprintf('%02d', $m);
+        $yStr = (string) $y;
         $lastDay = date('t', strtotime("{$yStr}-{$mStr}-01"));
         $poliTitle = ($poli && $poli !== 'SEMUA') ? strtoupper($poli) : 'SEMUA POLI';
-
-        // ----------------------------------------------------
-        // 1. SHEET: JK (Jenis Kelamin - Pengunjung Unik)
-        // ----------------------------------------------------
-        $sheetJK = $spreadsheet->getActiveSheet();
-        $sheetJK->setTitle('JK');
-        $sheetJK->setShowGridLines(true);
 
         // Unique patients by RM
         $uniquePatients = [];
         foreach ($visits as $v) {
-            if (!isset($uniquePatients[$v->no_rm])) {
-                $uniquePatients[$v->no_rm] = $v;
+            $rmKey = trim((string) $v->no_rm);
+            if (! empty($rmKey) && ! isset($uniquePatients[$rmKey])) {
+                $uniquePatients[$rmKey] = $v;
             }
         }
 
-        $jkCounts = ['L' => 0, 'P' => 0];
+        // ----------------------------------------------------
+        // 1. SHEET: LAPORAN PUSKESAD
+        // ----------------------------------------------------
+        $sheetPuskesad = $spreadsheet->getActiveSheet();
+        $sheetPuskesad->setTitle('LAPORAN PUSKESAD');
+        $sheetPuskesad->setShowGridLines(true);
+
+        $bulanIndoMap = [
+            1 => 'JANUARI', 2 => 'PEBRUARI', 3 => 'MARET', 4 => 'APRIL',
+            5 => 'MEI', 6 => 'JUNI', 7 => 'JULI', 8 => 'AGUSTUS',
+            9 => 'SEPTEMBER', 10 => 'OKTOBER', 11 => 'NOPEMBER', 12 => 'DESEMBER',
+        ];
+        $bulanText = $bulanIndoMap[$m] ?? strtoupper(date('F', strtotime("{$yStr}-{$mStr}-01")));
+
+        $sheetPuskesad->setCellValue('A1', 'RSPAD GATOT SOEBROTO');
+        $sheetPuskesad->setCellValue('A2', 'INSTALASI REKAM MEDIS DAN INFOKES');
+        $sheetPuskesad->setCellValue('A3', 'LAPORAN PELAYANAN RAWAT JALAN');
+        $sheetPuskesad->setCellValue('A4', "BULAN {$bulanText} {$yStr}");
+
+        $sheetPuskesad->mergeCells('A1:F1');
+        $sheetPuskesad->mergeCells('A2:F2');
+        $sheetPuskesad->mergeCells('A3:F3');
+        $sheetPuskesad->mergeCells('A4:F4');
+
+        $titleStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 11],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '00B050']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+        ];
+        $sheetPuskesad->getStyle('A1:F4')->applyFromArray($titleStyle);
+
+        // Header Table
+        $sheetPuskesad->setCellValue('A5', 'NO');
+        $sheetPuskesad->setCellValue('B5', 'STATUS PASIEN');
+        $sheetPuskesad->setCellValue('C5', $bulanText);
+
+        $sheetPuskesad->mergeCells('A5:A7');
+        $sheetPuskesad->mergeCells('B5:B7');
+        $sheetPuskesad->mergeCells('C5:F5');
+
+        $sheetPuskesad->setCellValue('C6', 'PENGUNJUNG');
+        $sheetPuskesad->setCellValue('E6', 'KUNJUNGAN');
+
+        $sheetPuskesad->mergeCells('C6:D6');
+        $sheetPuskesad->mergeCells('E6:F6');
+
+        $sheetPuskesad->setCellValue('C7', 'JUMLAH');
+        $sheetPuskesad->setCellValue('D7', '%');
+        $sheetPuskesad->setCellValue('E7', 'JUMLAH');
+        $sheetPuskesad->setCellValue('F7', '%');
+
+        $tableHeaderStyle = [
+            'font' => ['bold' => true, 'color' => ['rgb' => '000000'], 'size' => 10],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => '00B050']],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => '000000']]],
+        ];
+        $sheetPuskesad->getStyle('A5:F7')->applyFromArray($tableHeaderStyle);
+
+        $getCategoryKey = function ($v) {
+            $kel = trim(strtoupper((string) ($v->kelompok ?? '')));
+            $pen = trim(strtoupper((string) ($v->jenis_penjamin ?? '')));
+            $kes = trim(strtoupper((string) ($v->kesatuan ?? '')));
+            $ins = trim(strtoupper((string) ($v->instansi ?? '')));
+            $pa = trim(strtoupper((string) ($v->pangkat ?? '')));
+            $kat = trim(strtoupper((string) ($v->kategori ?? '')));
+
+            if ($kel === 'AD' || str_contains($kel, 'MILITER TNI AD') || str_contains($kel, 'TNI AD')) {
+                return '1a';
+            }
+            if ($kel === 'PNS AD' || ($kel === 'PNS KEMHAN/TNI' && ! str_contains($kes, 'AL') && ! str_contains($ins, 'AL') && ! str_contains($kes, 'AU') && ! str_contains($ins, 'AU'))) {
+                return '1b';
+            }
+            if ($kel === 'KEL AD' || $kel === 'KELUARGA MILITER') {
+                return '1c';
+            }
+
+            if ($kel === 'AL' || str_contains($kel, 'TNI AL')) {
+                return '1d';
+            }
+            if ($kel === 'PNS AL' || ($kel === 'PNS KEMHAN/TNI' && (str_contains($kes, 'AL') || str_contains($ins, 'AL')))) {
+                return '1e';
+            }
+            if ($kel === 'KEL AL' || ($kel === 'KELUARGA MILITER' && (str_contains($kes, 'AL') || str_contains($ins, 'AL')))) {
+                return '1f';
+            }
+
+            if ($kel === 'AU' || str_contains($kel, 'TNI AU')) {
+                return '1g';
+            }
+            if ($kel === 'PNS AU' || ($kel === 'PNS KEMHAN/TNI' && (str_contains($kes, 'AU') || str_contains($ins, 'AU')))) {
+                return '1h';
+            }
+            if ($kel === 'KEL AU' || ($kel === 'KELUARGA MILITER' && (str_contains($kes, 'AU') || str_contains($ins, 'AU')))) {
+                return '1i';
+            }
+
+            if (str_contains($kel, 'PPPK DINAS') || str_contains($pa, 'PPPK DINAS')) {
+                return '1j';
+            }
+
+            if ($kel === 'POLRI' || str_contains($kel, 'POLRI') || str_contains($pen, 'POLRI')) {
+                if (str_contains($kel, 'PNS') || str_contains($pa, 'PNS')) {
+                    return '2b';
+                }
+                if (str_contains($kel, 'KEL') || str_contains($kat, 'KEL') || str_contains($kat, 'ANAK') || str_contains($kat, 'ISTRI')) {
+                    return '2c';
+                }
+
+                return '2a';
+            }
+
+            if ($kel === 'PURNAWIRAWAN' || str_contains($kel, 'PURNA') || str_contains($pen, 'PURNA') || str_contains($pa, 'PENSIUN')) {
+                return '3';
+            }
+
+            if (str_contains($pen, 'KEMENTERIAN') || str_contains($pen, 'KEMENTRIAN') || str_contains($kel, 'KEMENTERIAN') || str_contains($kel, 'KEMENTRIAN')) {
+                if (str_contains($kel, 'PPPK') || str_contains($pa, 'PPPK')) {
+                    return '5';
+                }
+
+                return '4';
+            }
+
+            if (str_contains($kel, 'PPPK KEMENT') || str_contains($kel, 'PPPK KEMHAN')) {
+                return '5';
+            }
+
+            if ($kel === 'BPJS PBI' || str_contains($kel, 'PBI') || str_contains($pen, 'PBI')) {
+                return '6a';
+            }
+            if (str_contains($kel, 'KETENAGAKERJAAN') || str_contains($pen, 'KETENAGAKERJAAN') || str_contains($pen, 'TENAGA KERJA')) {
+                return '6c';
+            }
+            if (str_contains($kel, 'BPJS') || str_contains($pen, 'BPJS') || str_contains($pen, 'MANDIRI') || str_contains($kel, 'MANDIRI')) {
+                return '6b';
+            }
+
+            if (str_contains($pen, 'SWASTA') || str_contains($kel, 'SWASTA')) {
+                return '7';
+            }
+            if (str_contains($pen, 'RSPAD') || str_contains($pen, 'JAMINAN')) {
+                return '8';
+            }
+            if (str_contains($pen, 'BAKSOS')) {
+                return '9';
+            }
+
+            return '10';
+        };
+
+        $countsK = [];
+        $countsP = [];
+
+        foreach ($visits as $v) {
+            $cat = $getCategoryKey($v);
+            $countsK[$cat] = ($countsK[$cat] ?? 0) + 1;
+        }
+
         foreach ($uniquePatients as $p) {
-            $g = strtoupper(trim((string)$p->gender)) === 'P' ? 'P' : 'L';
+            $cat = $getCategoryKey($p);
+            $countsP[$cat] = ($countsP[$cat] ?? 0) + 1;
+        }
+
+        $totPAll = max(1, count($uniquePatients));
+        $totKAll = max(1, count($visits));
+
+        $rPus = 8;
+
+        // 1. JKN AKTIF
+        $sheetPuskesad->setCellValue("A{$rPus}", '1');
+        $sheetPuskesad->setCellValue("B{$rPus}", 'JKN AKTIF');
+        $rPus++;
+        $start1 = $rPus;
+
+        $items1 = [
+            '1a' => 'a. TNI AD',
+            '1b' => 'b. PNS AD',
+            '1c' => 'c. KEL AD',
+            '1d' => 'd. TNI AL',
+            '1e' => 'e. PNS AL',
+            '1f' => 'f. KEL AL',
+            '1g' => 'g. TNI AU',
+            '1h' => 'h. PNS AU',
+            '1i' => 'i. KEL AU',
+            '1j' => 'j. PPPK DINAS',
+        ];
+
+        foreach ($items1 as $key => $lbl) {
+            $cP = $countsP[$key] ?? 0;
+            $cK = $countsK[$key] ?? 0;
+            $sheetPuskesad->setCellValue("B{$rPus}", $lbl);
+            $sheetPuskesad->setCellValue("C{$rPus}", $cP);
+            $sheetPuskesad->setCellValue("D{$rPus}", $cP / $totPAll);
+            $sheetPuskesad->setCellValue("E{$rPus}", $cK);
+            $sheetPuskesad->setCellValue("F{$rPus}", $cK / $totKAll);
+            $rPus++;
+        }
+        $end1 = $rPus - 1;
+
+        $sub1P = array_sum(array_intersect_key($countsP, $items1));
+        $sub1K = array_sum(array_intersect_key($countsK, $items1));
+
+        $sheetPuskesad->setCellValue("B{$rPus}", 'SUB TOTAL');
+        $sheetPuskesad->setCellValue("C{$rPus}", "=SUM(C{$start1}:C{$end1})");
+        $sheetPuskesad->setCellValue("D{$rPus}", $sub1P / $totPAll);
+        $sheetPuskesad->setCellValue("E{$rPus}", "=SUM(E{$start1}:E{$end1})");
+        $sheetPuskesad->setCellValue("F{$rPus}", $sub1K / $totKAll);
+        $sheetPuskesad->getStyle("A{$rPus}:F{$rPus}")->getFont()->setBold(true);
+        $sub1Row = $rPus;
+        $rPus++;
+
+        // 2. JKN POLRI
+        $sheetPuskesad->setCellValue("A{$rPus}", '2');
+        $sheetPuskesad->setCellValue("B{$rPus}", 'JKN POLRI');
+        $rPus++;
+        $start2 = $rPus;
+
+        $items2 = [
+            '2a' => 'a. POLRI',
+            '2b' => 'b. PNS POLRI',
+            '2c' => 'c. KEL POLRI',
+        ];
+
+        foreach ($items2 as $key => $lbl) {
+            $cP = $countsP[$key] ?? 0;
+            $cK = $countsK[$key] ?? 0;
+            $sheetPuskesad->setCellValue("B{$rPus}", $lbl);
+            $sheetPuskesad->setCellValue("C{$rPus}", $cP);
+            $sheetPuskesad->setCellValue("D{$rPus}", $cP / $totPAll);
+            $sheetPuskesad->setCellValue("E{$rPus}", $cK);
+            $sheetPuskesad->setCellValue("F{$rPus}", $cK / $totKAll);
+            $rPus++;
+        }
+        $end2 = $rPus - 1;
+
+        $sub2P = array_sum(array_intersect_key($countsP, $items2));
+        $sub2K = array_sum(array_intersect_key($countsK, $items2));
+
+        $sheetPuskesad->setCellValue("B{$rPus}", 'SUB TOTAL');
+        $sheetPuskesad->setCellValue("C{$rPus}", "=SUM(C{$start2}:C{$end2})");
+        $sheetPuskesad->setCellValue("D{$rPus}", $sub2P / $totPAll);
+        $sheetPuskesad->setCellValue("E{$rPus}", "=SUM(E{$start2}:E{$end2})");
+        $sheetPuskesad->setCellValue("F{$rPus}", $sub2K / $totKAll);
+        $sheetPuskesad->getStyle("A{$rPus}:F{$rPus}")->getFont()->setBold(true);
+        $sub2Row = $rPus;
+        $rPus++;
+
+        $standaloneRows = [
+            '3' => ['no' => '3', 'lbl' => 'JKN PURNAWIRAWAN', 'key' => '3'],
+            '4' => ['no' => '4', 'lbl' => 'JKN KEMENTRIAN', 'key' => '4'],
+            '5' => ['no' => '5', 'lbl' => 'PPPK KEMENTERIAN', 'key' => '5'],
+        ];
+
+        $standaloneRowIndices = [];
+        foreach ($standaloneRows as $st) {
+            $cP = $countsP[$st['key']] ?? 0;
+            $cK = $countsK[$st['key']] ?? 0;
+            $sheetPuskesad->setCellValue("A{$rPus}", $st['no']);
+            $sheetPuskesad->setCellValue("B{$rPus}", $st['lbl']);
+            $sheetPuskesad->setCellValue("C{$rPus}", $cP);
+            $sheetPuskesad->setCellValue("D{$rPus}", $cP / $totPAll);
+            $sheetPuskesad->setCellValue("E{$rPus}", $cK);
+            $sheetPuskesad->setCellValue("F{$rPus}", $cK / $totKAll);
+            $standaloneRowIndices[] = $rPus;
+            $rPus++;
+        }
+
+        // 6. JKN UMUM
+        $sheetPuskesad->setCellValue("A{$rPus}", '6');
+        $sheetPuskesad->setCellValue("B{$rPus}", 'JKN UMUM');
+        $rPus++;
+        $start6 = $rPus;
+
+        $items6 = [
+            '6a' => 'a. PBI',
+            '6b' => 'b. MANDIRI',
+            '6c' => 'c. TENAGA KERJA',
+        ];
+
+        foreach ($items6 as $key => $lbl) {
+            $cP = $countsP[$key] ?? 0;
+            $cK = $countsK[$key] ?? 0;
+            $sheetPuskesad->setCellValue("B{$rPus}", $lbl);
+            $sheetPuskesad->setCellValue("C{$rPus}", $cP);
+            $sheetPuskesad->setCellValue("D{$rPus}", $cP / $totPAll);
+            $sheetPuskesad->setCellValue("E{$rPus}", $cK);
+            $sheetPuskesad->setCellValue("F{$rPus}", $cK / $totKAll);
+            $rPus++;
+        }
+        $end6 = $rPus - 1;
+
+        $standaloneRows2 = [
+            '7' => ['no' => '7', 'lbl' => 'SWASTA', 'key' => '7'],
+            '8' => ['no' => '8', 'lbl' => 'JAMINAN RSPAD', 'key' => '8'],
+            '9' => ['no' => '9', 'lbl' => 'BAKSOS', 'key' => '9'],
+            '10' => ['no' => '10', 'lbl' => 'ASURANSI', 'key' => '10'],
+        ];
+
+        foreach ($standaloneRows2 as $st) {
+            $cP = $countsP[$st['key']] ?? 0;
+            $cK = $countsK[$st['key']] ?? 0;
+            $sheetPuskesad->setCellValue("A{$rPus}", $st['no']);
+            $sheetPuskesad->setCellValue("B{$rPus}", $st['lbl']);
+            $sheetPuskesad->setCellValue("C{$rPus}", $cP);
+            $sheetPuskesad->setCellValue("D{$rPus}", $cP / $totPAll);
+            $sheetPuskesad->setCellValue("E{$rPus}", $cK);
+            $sheetPuskesad->setCellValue("F{$rPus}", $cK / $totKAll);
+            $standaloneRowIndices[] = $rPus;
+            $rPus++;
+        }
+
+        $actualGrandRow = $rPus;
+        $sheetPuskesad->setCellValue("B{$actualGrandRow}", 'JUMLAH');
+
+        $cSumCells = "C{$sub1Row}+C{$sub2Row}+".implode('+', array_map(fn ($r) => "C{$r}", $standaloneRowIndices))."+SUM(C{$start6}:C{$end6})";
+        $eSumCells = "E{$sub1Row}+E{$sub2Row}+".implode('+', array_map(fn ($r) => "E{$r}", $standaloneRowIndices))."+SUM(E{$start6}:E{$end6})";
+
+        $sheetPuskesad->setCellValue("C{$actualGrandRow}", "={$cSumCells}");
+        $sheetPuskesad->setCellValue("D{$actualGrandRow}", 1.0);
+        $sheetPuskesad->setCellValue("E{$actualGrandRow}", "={$eSumCells}");
+        $sheetPuskesad->setCellValue("F{$actualGrandRow}", 1.0);
+
+        $sheetPuskesad->getStyle("A{$actualGrandRow}:F{$actualGrandRow}")->getFont()->setBold(true);
+        $sheetPuskesad->getStyle("A8:F{$actualGrandRow}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+        $sheetPuskesad->getStyle("D8:D{$actualGrandRow}")->getNumberFormat()->setFormatCode('0.00%');
+        $sheetPuskesad->getStyle("F8:F{$actualGrandRow}")->getNumberFormat()->setFormatCode('0.00%');
+
+        $rFoot = $actualGrandRow + 3;
+        $sheetPuskesad->setCellValue("E{$rFoot}", "Jakarta, {$bulanText} {$yStr}");
+        $rFoot++;
+        $sheetPuskesad->setCellValue("E{$rFoot}", 'Instal Rekam Medis dan Infokes');
+        $rFoot += 3;
+        $sheetPuskesad->setCellValue("E{$rFoot}", 'I Wayan Sandi, S.K.M');
+        $rFoot++;
+        $sheetPuskesad->setCellValue("E{$rFoot}", 'Ecol Ckm (K) NRP 119400044...');
+        $sheetPuskesad->getStyle('E'.($actualGrandRow + 3).":E{$rFoot}")->getFont()->setBold(true);
+
+        self::autoFitColumns($sheetPuskesad, 'A', 'F');
+        $sheetPuskesad->getColumnDimension('B')->setWidth(32);
+
+        // ----------------------------------------------------
+        // 2. SHEET: JK
+        // ----------------------------------------------------
+        $sheetJK = $spreadsheet->createSheet();
+        $sheetJK->setTitle('JK');
+        $sheetJK->setShowGridLines(true);
+
+        $jkCounts = ['L' => 0, 'P' => 0];
+        foreach ($visits as $p) {
+            $g = self::normalizeGender($p->gender);
             $jkCounts[$g]++;
         }
 
@@ -67,16 +542,19 @@ class ExcelReportExporter
         $sheetJK->setCellValue('B5', $jkCounts['L']);
         $sheetJK->setCellValue('A6', 'P');
         $sheetJK->setCellValue('B6', $jkCounts['P']);
+        $sheetJK->setCellValue('A7', '(blank)');
+        $sheetJK->setCellValue('B7', 0);
         $sheetJK->setCellValue('A8', 'Grand Total');
-        $sheetJK->setCellValue('B8', count($uniquePatients));
+        $sheetJK->setCellValue('B8', '=SUM(B5:B7)');
 
         $sheetJK->getStyle('A4:B4')->getFont()->setBold(true);
         $sheetJK->getStyle('A8:B8')->getFont()->setBold(true);
+        $sheetJK->getStyle('A4:B8')->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
         $sheetJK->getColumnDimension('A')->setWidth(18);
         $sheetJK->getColumnDimension('B')->setWidth(14);
 
         // ----------------------------------------------------
-        // 2. SHEET: PIVOT P (Pivot Pengunjung Unik)
+        // 2. SHEET: PIVOT P
         // ----------------------------------------------------
         $sheetPivotP = $spreadsheet->createSheet();
         $sheetPivotP->setTitle('PIVOT P');
@@ -90,43 +568,62 @@ class ExcelReportExporter
 
         $pivotPData = [];
         foreach ($uniquePatients as $p) {
-            $pen = $p->jenis_penjamin ?: 'LAIN-LAIN';
-            $kel = $p->kelompok ?: 'UMUM / TUNAI';
-            if (!isset($pivotPData[$pen][$kel])) {
+            $pen = trim((string) $p->jenis_penjamin) ?: 'LAIN-LAIN';
+            $kel = self::normalizeKelompokName($p);
+            if (! isset($pivotPData[$pen])) {
+                $pivotPData[$pen] = [];
+            }
+            if (! isset($pivotPData[$pen][$kel])) {
                 $pivotPData[$pen][$kel] = 0;
             }
             $pivotPData[$pen][$kel]++;
         }
 
+        ksort($pivotPData);
+
         $rpP = 5;
-        $grandTotalP = 0;
+        $subtotalRowsP = [];
+
         foreach ($pivotPData as $penName => $kelGroup) {
-            $penTotal = 0;
+            ksort($kelGroup);
+            $groupStartRow = $rpP;
+            $isFirstInGroup = true;
+
             foreach ($kelGroup as $kelName => $cnt) {
-                $sheetPivotP->setCellValue("A{$rpP}", $penName);
-                $sheetPivotP->setCellValue("B{$rpP}", $kelName);
+                if ($isFirstInGroup) {
+                    $sheetPivotP->setCellValue("A{$rpP}", $penName);
+                    $isFirstInGroup = false;
+                }
+                if (! empty($kelName)) {
+                    $sheetPivotP->setCellValue("B{$rpP}", $kelName);
+                }
                 $sheetPivotP->setCellValue("C{$rpP}", $cnt);
-                $penTotal += $cnt;
                 $rpP++;
             }
-            // Subtotal row
+
+            $groupEndRow = $rpP - 1;
             $sheetPivotP->setCellValue("A{$rpP}", "{$penName} Total");
-            $sheetPivotP->setCellValue("C{$rpP}", $penTotal);
+            $sheetPivotP->setCellValue("C{$rpP}", "=SUM(C{$groupStartRow}:C{$groupEndRow})");
             $sheetPivotP->getStyle("A{$rpP}:C{$rpP}")->getFont()->setBold(true);
-            $grandTotalP += $penTotal;
+            $subtotalRowsP[] = "C{$rpP}";
             $rpP++;
         }
 
         $sheetPivotP->setCellValue("A{$rpP}", 'Grand Total');
-        $sheetPivotP->setCellValue("C{$rpP}", $grandTotalP);
+        if (! empty($subtotalRowsP)) {
+            $sheetPivotP->setCellValue("C{$rpP}", '=SUM('.implode(',', $subtotalRowsP).')');
+        } else {
+            $sheetPivotP->setCellValue("C{$rpP}", 0);
+        }
         $sheetPivotP->getStyle("A{$rpP}:C{$rpP}")->getFont()->setBold(true);
+        $sheetPivotP->getStyle("A4:C{$rpP}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
 
-        $sheetPivotP->getColumnDimension('A')->setWidth(26);
+        $sheetPivotP->getColumnDimension('A')->setWidth(28);
         $sheetPivotP->getColumnDimension('B')->setWidth(26);
         $sheetPivotP->getColumnDimension('C')->setWidth(14);
 
         // ----------------------------------------------------
-        // 3. SHEET: P (Data Detail Pengunjung Unik)
+        // 3. SHEET: P
         // ----------------------------------------------------
         $sheetP = $spreadsheet->createSheet();
         $sheetP->setTitle('P');
@@ -137,54 +634,26 @@ class ExcelReportExporter
             'NO. TELP', 'NO. PONSEL', 'POLI', 'DOKTER', 'TANGGAL', 'JAM', 'NO SEP', 'NO PESERTA',
             'JENIS RAWAT', 'JENIS PEMBAYARAN', 'KELOMPOK', 'PANGKAT', 'NRP', 'KELAMIN',
             'AGAMA', 'PENDIDIKAN', 'KESATUAN', 'ANGKATAN', 'HUBUNGAN KELUARGA', 'ALAMAT',
-            'KODE', 'DIAGNOSA AWAL', 'KODE', 'DIAGNOSA AKHIR', 'STATUS'
+            'KODE', 'DIAGNOSA AWAL', 'KODE', 'DIAGNOSA AKHIR', 'STATUS',
         ];
 
         foreach ($headersDetail as $colIdx => $hText) {
-            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx + 1);
+            $colLetter = Coordinate::stringFromColumnIndex($colIdx + 1);
             $sheetP->setCellValue("{$colLetter}1", $hText);
         }
         $sheetP->getStyle('A1:AE1')->getFont()->setBold(true);
 
-        $rP = 2;
+        $rowsP = [];
         $noP = 1;
         foreach ($uniquePatients as $v) {
-            $sheetP->setCellValue("A{$rP}", $noP++);
-            $sheetP->setCellValueExplicit("B{$rP}", (string)$v->no_rm, DataType::TYPE_STRING);
-            $sheetP->setCellValue("C{$rP}", $v->nama_pasien);
-            $sheetP->setCellValue("D{$rP}", $v->tgl_lahir);
-            $sheetP->setCellValue("E{$rP}", $v->umur);
-            $sheetP->setCellValue("F{$rP}", $v->status_pasien);
-            $sheetP->setCellValueExplicit("G{$rP}", (string)$v->no_telp, DataType::TYPE_STRING);
-            $sheetP->setCellValueExplicit("H{$rP}", (string)$v->no_hp, DataType::TYPE_STRING);
-            $sheetP->setCellValue("I{$rP}", $v->poliklinik);
-            $sheetP->setCellValue("J{$rP}", $v->dokter);
-            $sheetP->setCellValue("K{$rP}", $v->tgl_berobat);
-            $sheetP->setCellValue("L{$rP}", $v->jam);
-            $sheetP->setCellValueExplicit("M{$rP}", (string)$v->no_sep, DataType::TYPE_STRING);
-            $sheetP->setCellValueExplicit("N{$rP}", (string)$v->no_bpjs, DataType::TYPE_STRING);
-            $sheetP->setCellValue("O{$rP}", $v->jenis_rawat);
-            $sheetP->setCellValue("P{$rP}", $v->jenis_penjamin);
-            $sheetP->setCellValue("Q{$rP}", $v->kelompok);
-            $sheetP->setCellValue("R{$rP}", $v->pangkat);
-            $sheetP->setCellValueExplicit("S{$rP}", (string)$v->nip_nrp_pasien, DataType::TYPE_STRING);
-            $sheetP->setCellValue("T{$rP}", $v->gender);
-            $sheetP->setCellValue("U{$rP}", $v->agama);
-            $sheetP->setCellValue("V{$rP}", $v->pendidikan);
-            $sheetP->setCellValue("W{$rP}", $v->kesatuan);
-            $sheetP->setCellValue("X{$rP}", $v->instansi);
-            $sheetP->setCellValue("Y{$rP}", $v->kategori);
-            $sheetP->setCellValue("Z{$rP}", $v->alamat);
-            $sheetP->setCellValueExplicit("AA{$rP}", (string)$v->icd10_utama, DataType::TYPE_STRING);
-            $sheetP->setCellValue("AB{$rP}", $v->deskripsi_icd10_utama);
-            $sheetP->setCellValueExplicit("AC{$rP}", (string)$v->icd10_sekunder, DataType::TYPE_STRING);
-            $sheetP->setCellValue("AD{$rP}", $v->deskripsi_icd10_sekunder);
-            $sheetP->setCellValue("AE{$rP}", $v->status_registrasi);
-            $rP++;
+            $rowsP[] = self::formatDetailRow($noP++, $v);
         }
+        $sheetP->fromArray($rowsP, null, 'A2', true);
+        unset($rowsP);
+        self::autoFitColumns($sheetP, 'A', 'AE');
 
         // ----------------------------------------------------
-        // 4. SHEET: PIVOT K (Pivot Kunjungan Total)
+        // 4. SHEET: PIVOT K
         // ----------------------------------------------------
         $sheetPivotK = $spreadsheet->createSheet();
         $sheetPivotK->setTitle('PIVOT K');
@@ -196,111 +665,111 @@ class ExcelReportExporter
         $sheetPivotK->setCellValue('B4', 'KELOMPOK');
         $sheetPivotK->setCellValue('C4', 'Pasien Baru');
         $sheetPivotK->setCellValue('D4', 'Pasien Lama');
-        $sheetPivotK->setCellValue('E4', 'Grand Total');
-        $sheetPivotK->getStyle('A4:E4')->getFont()->setBold(true);
+        $sheetPivotK->setCellValue('E4', '(blank)');
+        $sheetPivotK->setCellValue('F4', 'Grand Total');
+        $sheetPivotK->getStyle('A4:F4')->getFont()->setBold(true);
 
         $pivotKData = [];
         foreach ($visits as $v) {
-            $pen = $v->jenis_penjamin ?: 'LAIN-LAIN';
-            $kel = $v->kelompok ?: 'UMUM / TUNAI';
-            $st  = $v->status_pasien === 'Pasien Baru' ? 'baru' : 'lama';
-            if (!isset($pivotKData[$pen][$kel])) {
+            $pen = trim((string) $v->jenis_penjamin) ?: 'LAIN-LAIN';
+            $kel = self::normalizeKelompokName($v);
+            $stKey = self::normalizeStatus($v->status_pasien) === 'Pasien Baru' ? 'baru' : 'lama';
+            if (! isset($pivotKData[$pen])) {
+                $pivotKData[$pen] = [];
+            }
+            if (! isset($pivotKData[$pen][$kel])) {
                 $pivotKData[$pen][$kel] = ['baru' => 0, 'lama' => 0];
             }
-            $pivotKData[$pen][$kel][$st]++;
+            $pivotKData[$pen][$kel][$stKey]++;
         }
 
+        ksort($pivotKData);
+
         $rpK = 5;
-        $grandBaruK = 0;
-        $grandLamaK = 0;
+        $subtotalRowsK = [];
 
         foreach ($pivotKData as $penName => $kelGroup) {
-            $penBaru = 0;
-            $penLama = 0;
+            ksort($kelGroup);
+            $groupStartRow = $rpK;
+            $isFirstInGroup = true;
+
             foreach ($kelGroup as $kelName => $c) {
-                $sheetPivotK->setCellValue("A{$rpK}", $penName);
-                $sheetPivotK->setCellValue("B{$rpK}", $kelName);
-                $sheetPivotK->setCellValue("C{$rpK}", $c['baru']);
-                $sheetPivotK->setCellValue("D{$rpK}", $c['lama']);
-                $sheetPivotK->setCellValue("E{$rpK}", $c['baru'] + $c['lama']);
-                $penBaru += $c['baru'];
-                $penLama += $c['lama'];
+                if ($isFirstInGroup) {
+                    $sheetPivotK->setCellValue("A{$rpK}", $penName);
+                    $isFirstInGroup = false;
+                }
+                if (! empty($kelName)) {
+                    $sheetPivotK->setCellValue("B{$rpK}", $kelName);
+                }
+                if ($c['baru'] > 0) {
+                    $sheetPivotK->setCellValue("C{$rpK}", $c['baru']);
+                }
+                if ($c['lama'] > 0) {
+                    $sheetPivotK->setCellValue("D{$rpK}", $c['lama']);
+                }
+                $sheetPivotK->setCellValue("F{$rpK}", "=SUM(C{$rpK}:D{$rpK})");
                 $rpK++;
             }
+
+            $groupEndRow = $rpK - 1;
             $sheetPivotK->setCellValue("A{$rpK}", "{$penName} Total");
-            $sheetPivotK->setCellValue("C{$rpK}", $penBaru);
-            $sheetPivotK->setCellValue("D{$rpK}", $penLama);
-            $sheetPivotK->setCellValue("E{$rpK}", $penBaru + $penLama);
-            $sheetPivotK->getStyle("A{$rpK}:E{$rpK}")->getFont()->setBold(true);
-            $grandBaruK += $penBaru;
-            $grandLamaK += $penLama;
+            $sheetPivotK->setCellValue("C{$rpK}", "=SUM(C{$groupStartRow}:C{$groupEndRow})");
+            $sheetPivotK->setCellValue("D{$rpK}", "=SUM(D{$groupStartRow}:D{$groupEndRow})");
+            $sheetPivotK->setCellValue("F{$rpK}", "=SUM(F{$groupStartRow}:F{$groupEndRow})");
+            $sheetPivotK->getStyle("A{$rpK}:F{$rpK}")->getFont()->setBold(true);
+
+            $subtotalRowsK[] = $rpK;
             $rpK++;
         }
 
         $sheetPivotK->setCellValue("A{$rpK}", 'Grand Total');
-        $sheetPivotK->setCellValue("C{$rpK}", $grandBaruK);
-        $sheetPivotK->setCellValue("D{$rpK}", $grandLamaK);
-        $sheetPivotK->setCellValue("E{$rpK}", $grandBaruK + $grandLamaK);
-        $sheetPivotK->getStyle("A{$rpK}:E{$rpK}")->getFont()->setBold(true);
+        if (! empty($subtotalRowsK)) {
+            $cSub = array_map(fn ($r) => "C{$r}", $subtotalRowsK);
+            $dSub = array_map(fn ($r) => "D{$r}", $subtotalRowsK);
+            $fSub = array_map(fn ($r) => "F{$r}", $subtotalRowsK);
 
-        $sheetPivotK->getColumnDimension('A')->setWidth(26);
+            $sheetPivotK->setCellValue("C{$rpK}", '=SUM('.implode(',', $cSub).')');
+            $sheetPivotK->setCellValue("D{$rpK}", '=SUM('.implode(',', $dSub).')');
+            $sheetPivotK->setCellValue("F{$rpK}", '=SUM('.implode(',', $fSub).')');
+        } else {
+            $sheetPivotK->setCellValue("C{$rpK}", 0);
+            $sheetPivotK->setCellValue("D{$rpK}", 0);
+            $sheetPivotK->setCellValue("F{$rpK}", 0);
+        }
+        $sheetPivotK->getStyle("A{$rpK}:F{$rpK}")->getFont()->setBold(true);
+        $sheetPivotK->getStyle("A4:F{$rpK}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+        $sheetPivotK->getColumnDimension('A')->setWidth(28);
         $sheetPivotK->getColumnDimension('B')->setWidth(26);
         $sheetPivotK->getColumnDimension('C')->setWidth(16);
         $sheetPivotK->getColumnDimension('D')->setWidth(16);
-        $sheetPivotK->getColumnDimension('E')->setWidth(16);
+        $sheetPivotK->getColumnDimension('E')->setWidth(10);
+        $sheetPivotK->getColumnDimension('F')->setWidth(16);
 
         // ----------------------------------------------------
-        // 5. SHEET: R (Data Detail Kunjungan Raw Visits)
+        // 5. SHEET: R
         // ----------------------------------------------------
         $sheetR = $spreadsheet->createSheet();
         $sheetR->setTitle('R');
         $sheetR->setShowGridLines(true);
 
         foreach ($headersDetail as $colIdx => $hText) {
-            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx + 1);
+            $colLetter = Coordinate::stringFromColumnIndex($colIdx + 1);
             $sheetR->setCellValue("{$colLetter}1", $hText);
         }
         $sheetR->getStyle('A1:AE1')->getFont()->setBold(true);
 
-        $rR = 2;
+        $rowsR = [];
         $noR = 1;
         foreach ($visits as $v) {
-            $sheetR->setCellValue("A{$rR}", $noR++);
-            $sheetR->setCellValueExplicit("B{$rR}", (string)$v->no_rm, DataType::TYPE_STRING);
-            $sheetR->setCellValue("C{$rR}", $v->nama_pasien);
-            $sheetR->setCellValue("D{$rR}", $v->tgl_lahir);
-            $sheetR->setCellValue("E{$rR}", $v->umur);
-            $sheetR->setCellValue("F{$rR}", $v->status_pasien);
-            $sheetR->setCellValueExplicit("G{$rR}", (string)$v->no_telp, DataType::TYPE_STRING);
-            $sheetR->setCellValueExplicit("H{$rR}", (string)$v->no_hp, DataType::TYPE_STRING);
-            $sheetR->setCellValue("I{$rR}", $v->poliklinik);
-            $sheetR->setCellValue("J{$rR}", $v->dokter);
-            $sheetR->setCellValue("K{$rR}", $v->tgl_berobat);
-            $sheetR->setCellValue("L{$rR}", $v->jam);
-            $sheetR->setCellValueExplicit("M{$rR}", (string)$v->no_sep, DataType::TYPE_STRING);
-            $sheetR->setCellValueExplicit("N{$rR}", (string)$v->no_bpjs, DataType::TYPE_STRING);
-            $sheetR->setCellValue("O{$rR}", $v->jenis_rawat);
-            $sheetR->setCellValue("P{$rR}", $v->jenis_penjamin);
-            $sheetR->setCellValue("Q{$rR}", $v->kelompok);
-            $sheetR->setCellValue("R{$rR}", $v->pangkat);
-            $sheetR->setCellValueExplicit("S{$rR}", (string)$v->nip_nrp_pasien, DataType::TYPE_STRING);
-            $sheetR->setCellValue("T{$rR}", $v->gender);
-            $sheetR->setCellValue("U{$rR}", $v->agama);
-            $sheetR->setCellValue("V{$rR}", $v->pendidikan);
-            $sheetR->setCellValue("W{$rR}", $v->kesatuan);
-            $sheetR->setCellValue("X{$rR}", $v->instansi);
-            $sheetR->setCellValue("Y{$rR}", $v->kategori);
-            $sheetR->setCellValue("Z{$rR}", $v->alamat);
-            $sheetR->setCellValueExplicit("AA{$rR}", (string)$v->icd10_utama, DataType::TYPE_STRING);
-            $sheetR->setCellValue("AB{$rR}", $v->deskripsi_icd10_utama);
-            $sheetR->setCellValueExplicit("AC{$rR}", (string)$v->icd10_sekunder, DataType::TYPE_STRING);
-            $sheetR->setCellValue("AD{$rR}", $v->deskripsi_icd10_sekunder);
-            $sheetR->setCellValue("AE{$rR}", $v->status_registrasi);
-            $rR++;
+            $rowsR[] = self::formatDetailRow($noR++, $v);
         }
+        $sheetR->fromArray($rowsR, null, 'A2', true);
+        unset($rowsR);
+        self::autoFitColumns($sheetR, 'A', 'AE');
 
         // ----------------------------------------------------
-        // 6. SHEET: Lap. kunjungan pasien (Laporan Terformat)
+        // 6. SHEET: Lap. kunjungan pasien
         // ----------------------------------------------------
         $sheetLap = $spreadsheet->createSheet();
         $sheetLap->setTitle('Lap. kunjungan pasien');
@@ -310,124 +779,49 @@ class ExcelReportExporter
         $sheetLap->setCellValue('A2', 'RSPAD GATOT SOEBROTO');
         $sheetLap->setCellValue('A3', 'Jl. Abdul Rahman Saleh No. 24, Jakarta Pusat');
         $sheetLap->setCellValue('A4', 'Telp : (021) 3441008, 3840702, Fax : (021) 3520619');
-
         $sheetLap->getStyle('A1:A2')->getFont()->setBold(true)->setSize(11);
         $sheetLap->getStyle('A3:A4')->getFont()->setSize(9.5);
 
         $sheetLap->setCellValue('A6', 'LAPORAN KUNJUNGAN PASIEN');
-        $sheetLap->getStyle('A6')->getFont()->setBold(true)->setSize(12)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('1E561E'));
+        $sheetLap->getStyle('A6')->getFont()->setBold(true)->setSize(12);
 
-        $sheetLap->setCellValue('A7', 'LOKASI');       $sheetLap->setCellValue('B7', ': RSPAD');
-        $sheetLap->setCellValue('A8', 'POLIKLINIK');   $sheetLap->setCellValue('B8', ": {$poliTitle}");
-        $sheetLap->setCellValue('A9', 'JENIS RAWAT');  $sheetLap->setCellValue('B9', ': WATLAN');
-        $sheetLap->setCellValue('A10', 'STATUS REGIS'); $sheetLap->setCellValue('B10', ': OPEN');
-        $sheetLap->setCellValue('A11', 'TANGGAL');    $sheetLap->setCellValue('B11', ": 01/{$mStr}/{$yStr} s/d {$lastDay}/{$mStr}/{$yStr}");
+        $sheetLap->setCellValue('A7', 'LOKASI');
+        $sheetLap->setCellValue('B7', ': RSPAD');
+        $sheetLap->setCellValue('A8', 'POLIKLINIK');
+        $sheetLap->setCellValue('B8', ": {$poliTitle}");
+        $sheetLap->setCellValue('A9', 'JENIS RAWAT');
+        $sheetLap->setCellValue('B9', ': WATLAN');
+        $sheetLap->setCellValue('A10', 'STATUS REGIS');
+        $sheetLap->setCellValue('B10', ': OPEN');
+        $sheetLap->setCellValue('A11', 'TANGGAL');
+        $sheetLap->setCellValue('B11', ": 01/{$mStr}/{$yStr} s/d {$lastDay}/{$mStr}/{$yStr}");
 
         $sheetLap->getStyle('A7:A11')->getFont()->setBold(true)->setSize(10);
         $sheetLap->getStyle('B7:B11')->getFont()->setSize(10);
 
-        $headers1 = [
-            'NO', 'NO RM', 'NAMA PASIEN', 'TANGGAL LAHIR', 'USIA', 'NO. TELP', 'NO. PONSEL',
-            'POLI', 'DOKTER', 'TANGGAL', 'JAM', 'NO SEP', 'NO PESERTA', 'TYPE PASIEN',
-            'JENIS RAWAT', 'JENIS PEMBAYARAN', 'KELOMPOK', 'PANGKAT', 'NRP', 'KELAMIN',
-            'AGAMA', 'PENDIDIKAN', 'KESATUAN', 'ANGKATAN', 'HUBUNGAN KELUARGA', 'ALAMAT',
-            'KODE', 'DIAGNOSA AWAL', 'KODE', 'DIAGNOSA AKHIR', 'STATUS'
-        ];
-
-        foreach ($headers1 as $colIdx => $hText) {
-            $colLetter = \PhpOffice\PhpSpreadsheet\Cell\Coordinate::stringFromColumnIndex($colIdx + 1);
+        foreach ($headersDetail as $colIdx => $hText) {
+            $colLetter = Coordinate::stringFromColumnIndex($colIdx + 1);
             $sheetLap->setCellValue("{$colLetter}13", $hText);
         }
-
-        $sheetLap->getRowDimension(13)->setRowHeight(28);
 
         $headerStyle1 = [
             'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF'], 'size' => 10],
             'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $darkGreenHeader]],
-            'alignment' => [
-                'horizontal' => Alignment::HORIZONTAL_CENTER,
-                'vertical' => Alignment::VERTICAL_CENTER,
-                'wrapText' => true,
-            ],
-            'borders' => [
-                'allBorders' => [
-                    'borderStyle' => Border::BORDER_THIN,
-                    'color' => ['rgb' => 'FFFFFF']
-                ]
-            ]
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
+            'borders' => ['allBorders' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => 'FFFFFF']]],
         ];
         $sheetLap->getStyle('A13:AE13')->applyFromArray($headerStyle1);
 
-        $widths1 = [
-            'A' => 16,  'B' => 14,  'C' => 28,  'D' => 16,  'E' => 8,
-            'F' => 18,  'G' => 18,  'H' => 24,  'I' => 28,  'J' => 14,
-            'K' => 10,  'L' => 24,  'M' => 22,  'N' => 16,  'O' => 16,
-            'P' => 24,  'Q' => 28,  'R' => 14,  'S' => 20,  'T' => 10,
-            'U' => 12,  'V' => 14,  'W' => 24,  'X' => 18,  'Y' => 22,
-            'Z' => 32,  'AA' => 10, 'AB' => 32, 'AC' => 10, 'AD' => 32, 'AE' => 14
-        ];
-        foreach ($widths1 as $col => $w) {
-            $sheetLap->getColumnDimension($col)->setWidth($w);
-        }
-
-        $rL = 14;
+        $rowsLap = [];
         foreach ($visits as $idx => $v) {
-            $sheetLap->setCellValue("A{$rL}", $idx + 1);
-            $sheetLap->setCellValueExplicit("B{$rL}", (string)$v->no_rm, DataType::TYPE_STRING);
-            $sheetLap->setCellValue("C{$rL}", $v->nama_pasien);
-            $sheetLap->setCellValue("D{$rL}", $v->tgl_lahir);
-            $sheetLap->setCellValue("E{$rL}", $v->umur);
-            $sheetLap->setCellValueExplicit("F{$rL}", (string)$v->no_telp, DataType::TYPE_STRING);
-            $sheetLap->setCellValueExplicit("G{$rL}", (string)$v->no_hp, DataType::TYPE_STRING);
-            $sheetLap->setCellValue("H{$rL}", $v->poliklinik);
-            $sheetLap->setCellValue("I{$rL}", $v->dokter);
-            $sheetLap->setCellValue("J{$rL}", $v->tgl_berobat);
-            $sheetLap->setCellValue("K{$rL}", $v->jam);
-            $sheetLap->setCellValueExplicit("L{$rL}", (string)$v->no_sep, DataType::TYPE_STRING);
-            $sheetLap->setCellValueExplicit("M{$rL}", (string)$v->no_bpjs, DataType::TYPE_STRING);
-            $sheetLap->setCellValue("N{$rL}", $v->status_pasien);
-            $sheetLap->setCellValue("O{$rL}", $v->jenis_rawat);
-            $sheetLap->setCellValue("P{$rL}", $v->jenis_penjamin);
-            $sheetLap->setCellValue("Q{$rL}", $v->kelompok);
-            $sheetLap->setCellValue("R{$rL}", $v->pangkat);
-            $sheetLap->setCellValueExplicit("S{$rL}", (string)$v->nip_nrp_pasien, DataType::TYPE_STRING);
-            $sheetLap->setCellValue("T{$rL}", $v->gender);
-            $sheetLap->setCellValue("U{$rL}", $v->agama);
-            $sheetLap->setCellValue("V{$rL}", $v->pendidikan);
-            $sheetLap->setCellValue("W{$rL}", $v->kesatuan);
-            $sheetLap->setCellValue("X{$rL}", $v->instansi);
-            $sheetLap->setCellValue("Y{$rL}", $v->kategori);
-            $sheetLap->setCellValue("Z{$rL}", $v->alamat);
-            $sheetLap->setCellValueExplicit("AA{$rL}", (string)$v->icd10_utama, DataType::TYPE_STRING);
-            $sheetLap->setCellValue("AB{$rL}", $v->deskripsi_icd10_utama);
-            $sheetLap->setCellValueExplicit("AC{$rL}", (string)$v->icd10_sekunder, DataType::TYPE_STRING);
-            $sheetLap->setCellValue("AD{$rL}", $v->deskripsi_icd10_sekunder);
-            $sheetLap->setCellValue("AE{$rL}", $v->status_registrasi);
-
-            $sheetLap->getRowDimension($rL)->setRowHeight(20);
-            $rL++;
+            $rowsLap[] = self::formatLapRow($idx + 1, $v);
         }
-
-        $lastRowLap = $rL - 1;
-        if ($lastRowLap >= 14) {
-            $sheetLap->getStyle("A14:AE{$lastRowLap}")->applyFromArray([
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => Border::BORDER_THIN,
-                        'color' => ['rgb' => $borderColor]
-                    ]
-                ],
-                'alignment' => ['vertical' => Alignment::VERTICAL_CENTER]
-            ]);
-
-            $centerCols = ['A', 'B', 'D', 'E', 'J', 'K', 'T', 'U', 'AA', 'AC', 'AE'];
-            foreach ($centerCols as $c) {
-                $sheetLap->getStyle("{$c}14:{$c}{$lastRowLap}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            }
-        }
+        $sheetLap->fromArray($rowsLap, null, 'A14', true);
+        unset($rowsLap);
+        self::autoFitColumns($sheetLap, 'A', 'AE');
 
         // ----------------------------------------------------
-        // 7. SHEET: rekap kunjungan (Rekapitulasi Terformat)
+        // 7. SHEET: rekap kunjungan
         // ----------------------------------------------------
         $sheetRekap = $spreadsheet->createSheet();
         $sheetRekap->setTitle('rekap kunjungan');
@@ -442,16 +836,18 @@ class ExcelReportExporter
         $sheetRekap->getStyle('A3:A4')->getFont()->setSize(9.5);
 
         $sheetRekap->setCellValue('A6', 'REKAP KUNJUNGAN');
-        $sheetRekap->getStyle('A6')->getFont()->setBold(true)->setSize(12)->setColor(new \PhpOffice\PhpSpreadsheet\Style\Color('1E561E'));
+        $sheetRekap->getStyle('A6')->getFont()->setBold(true)->setSize(12);
 
-        $sheetRekap->setCellValue('A7', 'LOKASI');       $sheetRekap->setCellValue('B7', ': RSPAD');
-        $sheetRekap->setCellValue('A8', 'POLIKLINIK');   $sheetRekap->setCellValue('B8', ": {$poliTitle}");
-        $sheetRekap->setCellValue('A9', 'JENIS RAWAT');  $sheetRekap->setCellValue('B9', ': WATLAN');
-        $sheetRekap->setCellValue('A10', 'STATUS REGIS'); $sheetRekap->setCellValue('B10', ': OPEN');
-        $sheetRekap->setCellValue('A11', 'TANGGAL');    $sheetRekap->setCellValue('B11', ": 01/{$mStr}/{$yStr} s/d {$lastDay}/{$mStr}/{$yStr}");
-
-        $sheetRekap->getStyle('A7:A11')->getFont()->setBold(true)->setSize(10);
-        $sheetRekap->getStyle('B7:B11')->getFont()->setSize(10);
+        $sheetRekap->setCellValue('A7', 'LOKASI');
+        $sheetRekap->setCellValue('B7', ': RSPAD');
+        $sheetRekap->setCellValue('A8', 'POLIKLINIK');
+        $sheetRekap->setCellValue('B8', ": {$poliTitle}");
+        $sheetRekap->setCellValue('A9', 'JENIS RAWAT');
+        $sheetRekap->setCellValue('B9', ': WATLAN');
+        $sheetRekap->setCellValue('A10', 'STATUS REGIS');
+        $sheetRekap->setCellValue('B10', ': OPEN');
+        $sheetRekap->setCellValue('A11', 'TANGGAL');
+        $sheetRekap->setCellValue('B11', ": 01/{$mStr}/{$yStr} s/d {$lastDay}/{$mStr}/{$yStr}");
 
         $sheetRekap->setCellValue('A13', 'NO');
         $sheetRekap->setCellValue('B13', 'GOLONGAN PERSONIL');
@@ -459,21 +855,15 @@ class ExcelReportExporter
         $sheetRekap->setCellValue('D13', 'JUMLAH PASIEN LAMA');
         $sheetRekap->setCellValue('E13', 'JUMLAH');
 
-        $sheetRekap->getRowDimension(13)->setRowHeight(28);
         $sheetRekap->getStyle('A13:E13')->applyFromArray($headerStyle1);
-
-        $widthsRekap = ['A' => 16, 'B' => 32, 'C' => 22, 'D' => 22, 'E' => 18];
-        foreach ($widthsRekap as $col => $w) {
-            $sheetRekap->getColumnDimension($col)->setWidth($w);
-        }
 
         $rekapGroup = [];
         foreach ($visits as $v) {
-            $kel = $v->kelompok ?: 'UMUM / TUNAI';
-            if (!isset($rekapGroup[$kel])) {
+            $kel = $v->jenis_penjamin ?: 'LAIN-LAIN';
+            if (! isset($rekapGroup[$kel])) {
                 $rekapGroup[$kel] = ['baru' => 0, 'lama' => 0, 'total' => 0];
             }
-            if ($v->status_pasien === 'Pasien Baru') {
+            if (self::normalizeStatus($v->status_pasien) === 'Pasien Baru') {
                 $rekapGroup[$kel]['baru']++;
             } else {
                 $rekapGroup[$kel]['lama']++;
@@ -483,133 +873,622 @@ class ExcelReportExporter
 
         $rRekap = 14;
         $noRekap = 1;
-        $totBaru = 0;
-        $totLama = 0;
+        $startRekapRow = 14;
 
         foreach ($rekapGroup as $kelName => $counts) {
             $sheetRekap->setCellValue("A{$rRekap}", $noRekap++);
             $sheetRekap->setCellValue("B{$rRekap}", $kelName);
             $sheetRekap->setCellValue("C{$rRekap}", $counts['baru']);
             $sheetRekap->setCellValue("D{$rRekap}", $counts['lama']);
-            $sheetRekap->setCellValue("E{$rRekap}", $counts['total']);
-            $totBaru += $counts['baru'];
-            $totLama += $counts['lama'];
-
-            $sheetRekap->getRowDimension($rRekap)->setRowHeight(20);
+            $sheetRekap->setCellValue("E{$rRekap}", "=SUM(C{$rRekap}:D{$rRekap})");
             $rRekap++;
         }
 
-        $lastDataRowRekap = $rRekap - 1;
-        if ($lastDataRowRekap >= 14) {
-            $sheetRekap->getStyle("A14:E{$lastDataRowRekap}")->applyFromArray([
-                'borders' => [
-                    'allBorders' => [
-                        'borderStyle' => Border::BORDER_THIN,
-                        'color' => ['rgb' => $borderColor]
-                    ]
-                ],
-                'alignment' => ['vertical' => Alignment::VERTICAL_CENTER]
-            ]);
-            $sheetRekap->getStyle("A14:A{$lastDataRowRekap}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-            $sheetRekap->getStyle("C14:E{$lastDataRowRekap}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        }
-
+        $endRekapRow = $rRekap - 1;
         $sheetRekap->setCellValue("A{$rRekap}", 'TOTAL');
-        $sheetRekap->setCellValue("B{$rRekap}", '');
-        $sheetRekap->setCellValue("C{$rRekap}", $totBaru);
-        $sheetRekap->setCellValue("D{$rRekap}", $totLama);
-        $sheetRekap->setCellValue("E{$rRekap}", $totBaru + $totLama);
+        if ($endRekapRow >= $startRekapRow) {
+            $sheetRekap->setCellValue("C{$rRekap}", "=SUM(C{$startRekapRow}:C{$endRekapRow})");
+            $sheetRekap->setCellValue("D{$rRekap}", "=SUM(D{$startRekapRow}:D{$endRekapRow})");
+            $sheetRekap->setCellValue("E{$rRekap}", "=SUM(E{$startRekapRow}:E{$endRekapRow})");
+        } else {
+            $sheetRekap->setCellValue("C{$rRekap}", 0);
+            $sheetRekap->setCellValue("D{$rRekap}", 0);
+            $sheetRekap->setCellValue("E{$rRekap}", 0);
+        }
+        $sheetRekap->getStyle("A{$rRekap}:E{$rRekap}")->getFont()->setBold(true);
+        $sheetRekap->getStyle("A13:E{$rRekap}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        self::autoFitColumns($sheetRekap, 'A', 'E');
 
-        $sheetRekap->getRowDimension($rRekap)->setRowHeight(24);
-        $sheetRekap->getStyle("A{$rRekap}:E{$rRekap}")->applyFromArray([
-            'font' => ['bold' => true, 'size' => 11],
-            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $lightGreenTotal]],
-            'alignment' => ['vertical' => Alignment::VERTICAL_CENTER],
-            'borders' => [
-                'top' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => $darkGreenHeader]],
-                'bottom' => ['borderStyle' => Border::BORDER_DOUBLE, 'color' => ['rgb' => $darkGreenHeader]],
-                'left' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => $borderColor]],
-                'right' => ['borderStyle' => Border::BORDER_THIN, 'color' => ['rgb' => $borderColor]],
-            ]
-        ]);
-        $sheetRekap->getStyle("A{$rRekap}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-        $sheetRekap->getStyle("C{$rRekap}:E{$rRekap}")->getAlignment()->setHorizontal(Alignment::HORIZONTAL_CENTER);
-
-        // Download or Save to file
+        // Save writer output to targetFile
         $writer = new Xlsx($spreadsheet);
+        $writer->save($targetFile);
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet, $writer);
+
         if ($savePath) {
-            $writer->save($savePath);
-            return;
+            return null;
         }
 
-        if (!$filename) {
-            $filename = "Laporan_Kunjungan_RSPAD_{$month}_{$year}.xlsx";
+        if (! $filename) {
+            $filename = "Laporan_Puskesad_RSPAD_{$m}_{$y}.xlsx";
         }
 
-        header('Content-Type: application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-        header("Content-Disposition: attachment; filename=\"{$filename}\"");
-        $writer->save('php://output');
-        exit;
+        return response()->download($targetFile, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
     }
 
-    public static function exportZipForMonth($month, $year)
+    /**
+     * Export ONLY RL 3.4 (Pengunjung) Data & Sheets
+     */
+    public static function exportRL34($month, $year, $filename = null, $poli = null, $savePath = null)
     {
-        $query = RawVisit::query();
-        if ($month) {
-            $query->whereMonth('tgl_berobat', $month);
-        }
-        if ($year) {
-            $query->whereYear('tgl_berobat', $year);
-        }
+        ini_set('memory_limit', '1024M');
+        set_time_limit(300);
 
-        $polis = $query->distinct('poliklinik')->pluck('poliklinik')->filter()->values();
+        $m = (int) ($month ?: date('m'));
+        $y = (int) ($year ?: date('Y'));
+        $startDate = sprintf('%04d-%02d-01', $y, $m);
+        $endDate = date('Y-m-t', strtotime($startDate));
 
-        $tempDir = storage_path("app/temp_zip_" . time());
-        if (!is_dir($tempDir)) {
-            mkdir($tempDir, 0777, true);
-        }
+        $cacheFile = self::getCachePath('rl34', $m, $y, $poli);
 
-        $zipFile = storage_path("app/Laporan_Per_Poli_RSPAD_{$month}_{$year}.zip");
+        if (! $savePath && file_exists($cacheFile) && filesize($cacheFile) > 0) {
+            if (! $filename) {
+                $filename = "Laporan_RL_3.4_Pengunjung_{$m}_{$y}.xlsx";
+            }
 
-        $filesCreated = [];
-        foreach ($polis as $poli) {
-            $safePoli = preg_replace('/[^A-Za-z0-9_\-]/', '_', $poli);
-            $fileName = "{$safePoli}.xlsx";
-            $filePath = "{$tempDir}/{$fileName}";
-            self::exportFullOutput($month, $year, $fileName, $poli, $filePath);
-            $filesCreated[$fileName] = $filePath;
+            return response()->download($cacheFile, $filename, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ]);
         }
 
-        // Also add SEMUA POLIKLINIK file
-        $allFileName = "SEMUA_POLIKLINIK.xlsx";
-        $allFilePath = "{$tempDir}/{$allFileName}";
-        self::exportFullOutput($month, $year, $allFileName, 'SEMUA', $allFilePath);
-        $filesCreated[$allFileName] = $allFilePath;
+        $targetFile = $savePath ?: $cacheFile;
 
-        $zip = new \ZipArchive();
-        if ($zip->open($zipFile, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) === true) {
-            foreach ($filesCreated as $name => $path) {
-                if (file_exists($path)) {
-                    $zip->addFile($path, $name);
+        $query = DB::table('raw_visits')->whereBetween('tgl_berobat', [$startDate, $endDate]);
+        if ($poli && $poli !== 'SEMUA') {
+            $query->where('poliklinik', $poli);
+        }
+
+        $visits = $query->orderBy('tgl_berobat')->orderBy('id')->get();
+
+        $uniquePatients = [];
+        foreach ($visits as $v) {
+            $rmKey = trim((string) $v->no_rm);
+            if (! empty($rmKey) && ! isset($uniquePatients[$rmKey])) {
+                $uniquePatients[$rmKey] = $v;
+            }
+        }
+
+        $pengunjungBaru = 0;
+        $pengunjungLama = 0;
+        foreach ($uniquePatients as $p) {
+            if (self::normalizeStatus($p->status_pasien) === 'Pasien Baru') {
+                $pengunjungBaru++;
+            } else {
+                $pengunjungLama++;
+            }
+        }
+
+        $spreadsheet = new Spreadsheet;
+        $darkGreenHeader = '588B8B';
+
+        // ----------------------------------------------------
+        // 1. SHEET: RL 3.4 - Summary Pengunjung
+        // ----------------------------------------------------
+        $sheetSummary = $spreadsheet->getActiveSheet();
+        $sheetSummary->setTitle('RL 3.4 - Pengunjung');
+        $sheetSummary->setShowGridLines(true);
+
+        $sheetSummary->setCellValue('A1', 'RSPAD GATOT SOEBROTO');
+        $sheetSummary->setCellValue('A2', 'LAPORAN REKAPITULASI PENGUNJUNG (RL 3.4)');
+        $sheetSummary->setCellValue('A3', 'PERIODE: '.date('F Y', strtotime($startDate)).' | POLIKLINIK: '.($poli ?: 'SEMUA POLIKLINIK'));
+        $sheetSummary->getStyle('A1:A2')->getFont()->setBold(true)->setSize(12);
+
+        $sheetSummary->setCellValue('A5', 'NO');
+        $sheetSummary->setCellValue('B5', 'JENIS PENGUNJUNG');
+        $sheetSummary->setCellValue('C5', 'JUMLAH PENGUNJUNG');
+        $sheetSummary->getStyle('A5:C5')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $darkGreenHeader]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER],
+        ]);
+
+        $sheetSummary->setCellValue('A6', 1);
+        $sheetSummary->setCellValue('B6', 'Pengunjung Baru');
+        $sheetSummary->setCellValue('C6', $pengunjungBaru);
+
+        $sheetSummary->setCellValue('A7', 2);
+        $sheetSummary->setCellValue('B7', 'Pengunjung Lama');
+        $sheetSummary->setCellValue('C7', $pengunjungLama);
+
+        $sheetSummary->setCellValue('A8', 'TOTAL PENGUNJUNG');
+        $sheetSummary->setCellValue('C8', '=SUM(C6:C7)');
+        $sheetSummary->getStyle('A8:C8')->getFont()->setBold(true);
+        $sheetSummary->getStyle('A5:C8')->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+        $sheetSummary->getColumnDimension('A')->setWidth(8);
+        $sheetSummary->getColumnDimension('B')->setWidth(30);
+        $sheetSummary->getColumnDimension('C')->setWidth(24);
+
+        // ----------------------------------------------------
+        // 2. SHEET: JK
+        // ----------------------------------------------------
+        $sheetJK = $spreadsheet->createSheet();
+        $sheetJK->setTitle('JK');
+        $sheetJK->setShowGridLines(true);
+
+        $jkCounts = ['L' => 0, 'P' => 0];
+        foreach ($visits as $p) {
+            $g = self::normalizeGender($p->gender);
+            $jkCounts[$g]++;
+        }
+
+        $sheetJK->setCellValue('A3', 'Count of NO RM');
+        $sheetJK->setCellValue('A4', 'KELAMIN');
+        $sheetJK->setCellValue('B4', 'Total');
+        $sheetJK->setCellValue('A5', 'L');
+        $sheetJK->setCellValue('B5', $jkCounts['L']);
+        $sheetJK->setCellValue('A6', 'P');
+        $sheetJK->setCellValue('B6', $jkCounts['P']);
+        $sheetJK->setCellValue('A7', '(blank)');
+        $sheetJK->setCellValue('A8', 'Grand Total');
+        $sheetJK->setCellValue('B8', '=SUM(B5:B7)');
+
+        $sheetJK->getStyle('A4:B4')->getFont()->setBold(true);
+        $sheetJK->getStyle('A8:B8')->getFont()->setBold(true);
+        $sheetJK->getStyle('A4:B8')->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        $sheetJK->getColumnDimension('A')->setWidth(18);
+        $sheetJK->getColumnDimension('B')->setWidth(14);
+
+        // ----------------------------------------------------
+        // 3. SHEET: PIVOT P
+        // ----------------------------------------------------
+        $sheetPivotP = $spreadsheet->createSheet();
+        $sheetPivotP->setTitle('PIVOT P');
+        $sheetPivotP->setShowGridLines(true);
+
+        $sheetPivotP->setCellValue('A3', 'Count of NO RM');
+        $sheetPivotP->setCellValue('A4', 'JENIS PEMBAYARAN');
+        $sheetPivotP->setCellValue('B4', 'KELOMPOK');
+        $sheetPivotP->setCellValue('C4', 'Total');
+        $sheetPivotP->getStyle('A4:C4')->getFont()->setBold(true);
+
+        $pivotPData = [];
+        foreach ($uniquePatients as $p) {
+            $pen = trim((string) $p->jenis_penjamin) ?: 'LAIN-LAIN';
+            $kel = self::normalizeKelompokName($p);
+            if (! isset($pivotPData[$pen])) {
+                $pivotPData[$pen] = [];
+            }
+            if (! isset($pivotPData[$pen][$kel])) {
+                $pivotPData[$pen][$kel] = 0;
+            }
+            $pivotPData[$pen][$kel]++;
+        }
+
+        ksort($pivotPData);
+
+        $rpP = 5;
+        $subtotalRowsP = [];
+
+        foreach ($pivotPData as $penName => $kelGroup) {
+            ksort($kelGroup);
+            $groupStartRow = $rpP;
+            $isFirstInGroup = true;
+
+            foreach ($kelGroup as $kelName => $cnt) {
+                if ($isFirstInGroup) {
+                    $sheetPivotP->setCellValue("A{$rpP}", $penName);
+                    $isFirstInGroup = false;
                 }
+                if (! empty($kelName)) {
+                    $sheetPivotP->setCellValue("B{$rpP}", $kelName);
+                }
+                $sheetPivotP->setCellValue("C{$rpP}", $cnt);
+                $rpP++;
             }
-            $zip->close();
+
+            $groupEndRow = $rpP - 1;
+            $sheetPivotP->setCellValue("A{$rpP}", "{$penName} Total");
+            $sheetPivotP->setCellValue("C{$rpP}", "=SUM(C{$groupStartRow}:C{$groupEndRow})");
+            $sheetPivotP->getStyle("A{$rpP}:C{$rpP}")->getFont()->setBold(true);
+            $subtotalRowsP[] = "C{$rpP}";
+            $rpP++;
         }
 
-        // Clean temp excel files
-        foreach ($filesCreated as $path) {
-            if (file_exists($path)) {
-                @unlink($path);
-            }
+        $sheetPivotP->setCellValue("A{$rpP}", 'Grand Total');
+        if (! empty($subtotalRowsP)) {
+            $sheetPivotP->setCellValue("C{$rpP}", '=SUM('.implode(',', $subtotalRowsP).')');
+        } else {
+            $sheetPivotP->setCellValue("C{$rpP}", 0);
         }
-        @rmdir($tempDir);
+        $sheetPivotP->getStyle("A{$rpP}:C{$rpP}")->getFont()->setBold(true);
+        $sheetPivotP->getStyle("A4:C{$rpP}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
 
-        $zipName = "Laporan_Per_Poli_RSPAD_{$month}_{$year}.zip";
-        header('Content-Type: application/zip');
-        header("Content-Disposition: attachment; filename=\"{$zipName}\"");
-        header('Content-Length: ' . filesize($zipFile));
-        readfile($zipFile);
-        @unlink($zipFile);
-        exit;
+        $sheetPivotP->getColumnDimension('A')->setWidth(28);
+        $sheetPivotP->getColumnDimension('B')->setWidth(26);
+        $sheetPivotP->getColumnDimension('C')->setWidth(14);
+
+        // ----------------------------------------------------
+        // 4. SHEET: P
+        // ----------------------------------------------------
+        $sheetP = $spreadsheet->createSheet();
+        $sheetP->setTitle('P');
+        $sheetP->setShowGridLines(true);
+
+        $headersDetail = [
+            'NO', 'NO RM', 'NAMA PASIEN', 'TANGGAL LAHIR', 'USIA', 'TYPE PASIEN',
+            'NO. TELP', 'NO. PONSEL', 'POLI', 'DOKTER', 'TANGGAL', 'JAM', 'NO SEP', 'NO PESERTA',
+            'JENIS RAWAT', 'JENIS PEMBAYARAN', 'KELOMPOK', 'PANGKAT', 'NRP', 'KELAMIN',
+            'AGAMA', 'PENDIDIKAN', 'KESATUAN', 'ANGKATAN', 'HUBUNGAN KELUARGA', 'ALAMAT',
+            'KODE', 'DIAGNOSA AWAL', 'KODE', 'DIAGNOSA AKHIR', 'STATUS',
+        ];
+
+        foreach ($headersDetail as $colIdx => $hText) {
+            $colLetter = Coordinate::stringFromColumnIndex($colIdx + 1);
+            $sheetP->setCellValue("{$colLetter}1", $hText);
+        }
+        $sheetP->getStyle('A1:AE1')->getFont()->setBold(true);
+
+        $rowsP = [];
+        $noP = 1;
+        foreach ($uniquePatients as $v) {
+            $rowsP[] = self::formatDetailRow($noP++, $v);
+        }
+        $sheetP->fromArray($rowsP, null, 'A2', true);
+        unset($rowsP);
+        self::autoFitColumns($sheetP, 'A', 'AE');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($targetFile);
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet, $writer);
+
+        if ($savePath) {
+            return null;
+        }
+
+        if (! $filename) {
+            $filename = "Laporan_RL_3.4_Pengunjung_{$m}_{$y}.xlsx";
+        }
+
+        return response()->download($targetFile, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    /**
+     * Export ONLY RL 3.5 (Kunjungan Poli) Data & Sheets
+     */
+    public static function exportRL35($month, $year, $filename = null, $poli = null, $savePath = null)
+    {
+        ini_set('memory_limit', '1024M');
+        set_time_limit(300);
+
+        $m = (int) ($month ?: date('m'));
+        $y = (int) ($year ?: date('Y'));
+        $startDate = sprintf('%04d-%02d-01', $y, $m);
+        $endDate = date('Y-m-t', strtotime($startDate));
+
+        $cacheFile = self::getCachePath('rl35', $m, $y, $poli);
+
+        if (! $savePath && file_exists($cacheFile) && filesize($cacheFile) > 0) {
+            if (! $filename) {
+                $filename = "Laporan_RL_3.5_Kunjungan_Poli_{$m}_{$y}.xlsx";
+            }
+
+            return response()->download($cacheFile, $filename, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ]);
+        }
+
+        $targetFile = $savePath ?: $cacheFile;
+
+        $query = DB::table('raw_visits')->whereBetween('tgl_berobat', [$startDate, $endDate]);
+        if ($poli && $poli !== 'SEMUA') {
+            $query->where('poliklinik', $poli);
+        }
+
+        $visits = $query->orderBy('tgl_berobat')->orderBy('id')->get();
+
+        $spreadsheet = new Spreadsheet;
+        $darkGreenHeader = '588B8B';
+
+        // ----------------------------------------------------
+        // 1. SHEET: RL 3.5 - Kunjungan Poli
+        // ----------------------------------------------------
+        $sheetSummary = $spreadsheet->getActiveSheet();
+        $sheetSummary->setTitle('RL 3.5 - Kunjungan Poli');
+        $sheetSummary->setShowGridLines(true);
+
+        $sheetSummary->setCellValue('A1', 'RSPAD GATOT SOEBROTO');
+        $sheetSummary->setCellValue('A2', 'LAPORAN REKAPITULASI KUNJUNGAN POLIKLINIK (RL 3.5)');
+        $sheetSummary->setCellValue('A3', 'PERIODE: '.date('F Y', strtotime($startDate)).' | POLIKLINIK: '.($poli ?: 'SEMUA POLIKLINIK'));
+        $sheetSummary->getStyle('A1:A2')->getFont()->setBold(true)->setSize(12);
+
+        $sheetSummary->setCellValue('A5', 'NO');
+        $sheetSummary->setCellValue('B5', 'JENIS KEGIATAN');
+        $sheetSummary->setCellValue('C5', 'KUNJUNGAN PASIEN DALAM KOTA (L)');
+        $sheetSummary->setCellValue('D5', 'KUNJUNGAN PASIEN DALAM KOTA (P)');
+        $sheetSummary->setCellValue('E5', 'KUNJUNGAN PASIEN LUAR KOTA (L)');
+        $sheetSummary->setCellValue('F5', 'KUNJUNGAN PASIEN LUAR KOTA (P)');
+        $sheetSummary->setCellValue('G5', 'TOTAL KUNJUNGAN');
+
+        $sheetSummary->getStyle('A5:G5')->applyFromArray([
+            'font' => ['bold' => true, 'color' => ['rgb' => 'FFFFFF']],
+            'fill' => ['fillType' => Fill::FILL_SOLID, 'startColor' => ['rgb' => $darkGreenHeader]],
+            'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
+        ]);
+
+        $poliDataRaw = (clone $query)
+            ->select(
+                'poliklinik',
+                DB::raw("SUM(CASE WHEN (LOWER(COALESCE(alamat, '')) LIKE '%jakarta%' OR LOWER(COALESCE(alamat, '')) LIKE '%dki%') AND (UPPER(COALESCE(gender, 'L')) = 'L') THEN 1 ELSE 0 END) as dalam_l"),
+                DB::raw("SUM(CASE WHEN (LOWER(COALESCE(alamat, '')) LIKE '%jakarta%' OR LOWER(COALESCE(alamat, '')) LIKE '%dki%') AND (UPPER(COALESCE(gender, 'L')) = 'P') THEN 1 ELSE 0 END) as dalam_p"),
+                DB::raw("SUM(CASE WHEN NOT (LOWER(COALESCE(alamat, '')) LIKE '%jakarta%' OR LOWER(COALESCE(alamat, '')) LIKE '%dki%') AND (UPPER(COALESCE(gender, 'L')) = 'L') THEN 1 ELSE 0 END) as luar_l"),
+                DB::raw("SUM(CASE WHEN NOT (LOWER(COALESCE(alamat, '')) LIKE '%jakarta%' OR LOWER(COALESCE(alamat, '')) LIKE '%dki%') AND (UPPER(COALESCE(gender, 'L')) = 'P') THEN 1 ELSE 0 END) as luar_p"),
+                DB::raw('COUNT(*) as total')
+            )
+            ->groupBy('poliklinik')
+            ->orderByDesc('total')
+            ->get();
+
+        $rS = 6;
+        foreach ($poliDataRaw as $idx => $row) {
+            $sheetSummary->setCellValue("A{$rS}", $idx + 1);
+            $sheetSummary->setCellValue("B{$rS}", $row->poliklinik ?: 'LAIN-LAIN');
+            $sheetSummary->setCellValue("C{$rS}", $row->dalam_l);
+            $sheetSummary->setCellValue("D{$rS}", $row->dalam_p);
+            $sheetSummary->setCellValue("E{$rS}", $row->luar_l);
+            $sheetSummary->setCellValue("F{$rS}", $row->luar_p);
+            $sheetSummary->setCellValue("G{$rS}", "=SUM(C{$rS}:F{$rS})");
+            $rS++;
+        }
+
+        $endRowS = $rS - 1;
+        $sheetSummary->setCellValue("A{$rS}", 'TOTAL SELURUH KUNJUNGAN');
+        if ($endRowS >= 6) {
+            $sheetSummary->setCellValue("C{$rS}", "=SUM(C6:C{$endRowS})");
+            $sheetSummary->setCellValue("D{$rS}", "=SUM(D6:D{$endRowS})");
+            $sheetSummary->setCellValue("E{$rS}", "=SUM(E6:E{$endRowS})");
+            $sheetSummary->setCellValue("F{$rS}", "=SUM(F6:F{$endRowS})");
+            $sheetSummary->setCellValue("G{$rS}", "=SUM(G6:G{$endRowS})");
+        } else {
+            $sheetSummary->setCellValue("C{$rS}", 0);
+            $sheetSummary->setCellValue("D{$rS}", 0);
+            $sheetSummary->setCellValue("E{$rS}", 0);
+            $sheetSummary->setCellValue("F{$rS}", 0);
+            $sheetSummary->setCellValue("G{$rS}", 0);
+        }
+        $sheetSummary->getStyle("A{$rS}:G{$rS}")->getFont()->setBold(true);
+        $sheetSummary->getStyle("A5:G{$rS}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+        self::autoFitColumns($sheetSummary, 'A', 'G');
+
+        // ----------------------------------------------------
+        // 2. SHEET: PIVOT K
+        // ----------------------------------------------------
+        $sheetPivotK = $spreadsheet->createSheet();
+        $sheetPivotK->setTitle('PIVOT K');
+        $sheetPivotK->setShowGridLines(true);
+
+        $sheetPivotK->setCellValue('A3', 'Count of NO RM');
+        $sheetPivotK->setCellValue('C3', 'TYPE PASIEN');
+        $sheetPivotK->setCellValue('A4', 'JENIS PEMBAYARAN');
+        $sheetPivotK->setCellValue('B4', 'KELOMPOK');
+        $sheetPivotK->setCellValue('C4', 'Pasien Baru');
+        $sheetPivotK->setCellValue('D4', 'Pasien Lama');
+        $sheetPivotK->setCellValue('E4', '(blank)');
+        $sheetPivotK->setCellValue('F4', 'Grand Total');
+        $sheetPivotK->getStyle('A4:F4')->getFont()->setBold(true);
+
+        $pivotKData = [];
+        foreach ($visits as $v) {
+            $pen = trim((string) $v->jenis_penjamin) ?: 'LAIN-LAIN';
+            $kel = self::normalizeKelompokName($v);
+            $stKey = self::normalizeStatus($v->status_pasien) === 'Pasien Baru' ? 'baru' : 'lama';
+            if (! isset($pivotKData[$pen])) {
+                $pivotKData[$pen] = [];
+            }
+            if (! isset($pivotKData[$pen][$kel])) {
+                $pivotKData[$pen][$kel] = ['baru' => 0, 'lama' => 0];
+            }
+            $pivotKData[$pen][$kel][$stKey]++;
+        }
+
+        ksort($pivotKData);
+
+        $rpK = 5;
+        $subtotalRowsK = [];
+
+        foreach ($pivotKData as $penName => $kelGroup) {
+            ksort($kelGroup);
+            $groupStartRow = $rpK;
+            $isFirstInGroup = true;
+
+            foreach ($kelGroup as $kelName => $c) {
+                if ($isFirstInGroup) {
+                    $sheetPivotK->setCellValue("A{$rpK}", $penName);
+                    $isFirstInGroup = false;
+                }
+                if (! empty($kelName)) {
+                    $sheetPivotK->setCellValue("B{$rpK}", $kelName);
+                }
+                if ($c['baru'] > 0) {
+                    $sheetPivotK->setCellValue("C{$rpK}", $c['baru']);
+                }
+                if ($c['lama'] > 0) {
+                    $sheetPivotK->setCellValue("D{$rpK}", $c['lama']);
+                }
+                $sheetPivotK->setCellValue("F{$rpK}", "=SUM(C{$rpK}:D{$rpK})");
+                $rpK++;
+            }
+
+            $groupEndRow = $rpK - 1;
+            $sheetPivotK->setCellValue("A{$rpK}", "{$penName} Total");
+            $sheetPivotK->setCellValue("C{$rpK}", "=SUM(C{$groupStartRow}:C{$groupEndRow})");
+            $sheetPivotK->setCellValue("D{$rpK}", "=SUM(D{$groupStartRow}:D{$groupEndRow})");
+            $sheetPivotK->setCellValue("F{$rpK}", "=SUM(F{$groupStartRow}:F{$groupEndRow})");
+            $sheetPivotK->getStyle("A{$rpK}:F{$rpK}")->getFont()->setBold(true);
+
+            $subtotalRowsK[] = $rpK;
+            $rpK++;
+        }
+
+        $sheetPivotK->setCellValue("A{$rpK}", 'Grand Total');
+        if (! empty($subtotalRowsK)) {
+            $cSub = array_map(fn ($r) => "C{$r}", $subtotalRowsK);
+            $dSub = array_map(fn ($r) => "D{$r}", $subtotalRowsK);
+            $fSub = array_map(fn ($r) => "F{$r}", $subtotalRowsK);
+
+            $sheetPivotK->setCellValue("C{$rpK}", '=SUM('.implode(',', $cSub).')');
+            $sheetPivotK->setCellValue("D{$rpK}", '=SUM('.implode(',', $dSub).')');
+            $sheetPivotK->setCellValue("F{$rpK}", '=SUM('.implode(',', $fSub).')');
+        } else {
+            $sheetPivotK->setCellValue("C{$rpK}", 0);
+            $sheetPivotK->setCellValue("D{$rpK}", 0);
+            $sheetPivotK->setCellValue("F{$rpK}", 0);
+        }
+        $sheetPivotK->getStyle("A{$rpK}:F{$rpK}")->getFont()->setBold(true);
+        $sheetPivotK->getStyle("A4:F{$rpK}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
+
+        $sheetPivotK->getColumnDimension('A')->setWidth(28);
+        $sheetPivotK->getColumnDimension('B')->setWidth(26);
+        $sheetPivotK->getColumnDimension('C')->setWidth(16);
+        $sheetPivotK->getColumnDimension('D')->setWidth(16);
+        $sheetPivotK->getColumnDimension('E')->setWidth(10);
+        $sheetPivotK->getColumnDimension('F')->setWidth(16);
+
+        // ----------------------------------------------------
+        // 3. SHEET: R
+        // ----------------------------------------------------
+        $sheetR = $spreadsheet->createSheet();
+        $sheetR->setTitle('R');
+        $sheetR->setShowGridLines(true);
+
+        $headersDetail = [
+            'NO', 'NO RM', 'NAMA PASIEN', 'TANGGAL LAHIR', 'USIA', 'TYPE PASIEN',
+            'NO. TELP', 'NO. PONSEL', 'POLI', 'DOKTER', 'TANGGAL', 'JAM', 'NO SEP', 'NO PESERTA',
+            'JENIS RAWAT', 'JENIS PEMBAYARAN', 'KELOMPOK', 'PANGKAT', 'NRP', 'KELAMIN',
+            'AGAMA', 'PENDIDIKAN', 'KESATUAN', 'ANGKATAN', 'HUBUNGAN KELUARGA', 'ALAMAT',
+            'KODE', 'DIAGNOSA AWAL', 'KODE', 'DIAGNOSA AKHIR', 'STATUS',
+        ];
+
+        foreach ($headersDetail as $colIdx => $hText) {
+            $colLetter = Coordinate::stringFromColumnIndex($colIdx + 1);
+            $sheetR->setCellValue("{$colLetter}1", $hText);
+        }
+        $sheetR->getStyle('A1:AE1')->getFont()->setBold(true);
+
+        $rowsR = [];
+        $noR = 1;
+        foreach ($visits as $v) {
+            $rowsR[] = self::formatDetailRow($noR++, $v);
+        }
+        $sheetR->fromArray($rowsR, null, 'A2', true);
+        unset($rowsR);
+        self::autoFitColumns($sheetR, 'A', 'AE');
+
+        $writer = new Xlsx($spreadsheet);
+        $writer->save($targetFile);
+        $spreadsheet->disconnectWorksheets();
+        unset($spreadsheet, $writer);
+
+        if ($savePath) {
+            return null;
+        }
+
+        if (! $filename) {
+            $filename = "Laporan_RL_3.5_Kunjungan_Poli_{$m}_{$y}.xlsx";
+        }
+
+        return response()->download($targetFile, $filename, [
+            'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+        ]);
+    }
+
+    private static function autoFitColumns($sheet, $startCol, $endCol)
+    {
+        $startIdx = Coordinate::columnIndexFromString($startCol);
+        $endIdx = Coordinate::columnIndexFromString($endCol);
+
+        for ($i = $startIdx; $i <= $endIdx; $i++) {
+            $colLetter = Coordinate::stringFromColumnIndex($i);
+            $sheet->getColumnDimension($colLetter)->setAutoSize(true);
+        }
+    }
+
+    private static function formatDetailRow($idx, $v)
+    {
+        return [
+            $idx,
+            (string) ($v->no_rm ?? ''),
+            (string) ($v->nama_pasien ?? ''),
+            (string) ($v->tgl_lahir ?? ''),
+            (string) ($v->umur ?? ''),
+            self::normalizeStatus($v->status_pasien),
+            (string) ($v->no_telp ?? ''),
+            (string) ($v->no_hp ?? ''),
+            (string) ($v->poliklinik ?? ''),
+            (string) ($v->dokter ?? ''),
+            (string) ($v->tgl_berobat ?? ''),
+            (string) ($v->jam ?? ''),
+            (string) ($v->no_sep ?? ''),
+            (string) ($v->no_bpjs ?? ''),
+            (string) ($v->jenis_rawat ?? ''),
+            (string) ($v->jenis_penjamin ?? ''),
+            (string) ($v->kelompok ?? ''),
+            (string) ($v->pangkat ?? ''),
+            (string) ($v->nip_nrp_pasien ?? ''),
+            self::normalizeGender($v->gender),
+            (string) ($v->agama ?? ''),
+            (string) ($v->pendidikan ?? ''),
+            (string) ($v->kesatuan ?? ''),
+            (string) ($v->instansi ?? ''),
+            (string) ($v->kategori ?? ''),
+            (string) ($v->alamat ?? ''),
+            (string) ($v->icd10_utama ?? ''),
+            (string) ($v->deskripsi_icd10_utama ?? ''),
+            (string) ($v->icd10_sekunder ?? ''),
+            (string) ($v->deskripsi_icd10_sekunder ?? ''),
+            (string) ($v->status_registrasi ?? 'open'),
+        ];
+    }
+
+    private static function formatLapRow($idx, $v)
+    {
+        return [
+            $idx,
+            (string) ($v->no_rm ?? ''),
+            (string) ($v->nama_pasien ?? ''),
+            (string) ($v->tgl_lahir ?? ''),
+            (string) ($v->umur ?? ''),
+            (string) ($v->no_telp ?? ''),
+            (string) ($v->no_hp ?? ''),
+            (string) ($v->poliklinik ?? ''),
+            (string) ($v->dokter ?? ''),
+            (string) ($v->tgl_berobat ?? ''),
+            (string) ($v->jam ?? ''),
+            '',
+            (string) ($v->no_sep ?? ''),
+            (string) ($v->no_bpjs ?? ''),
+            (string) ($v->jenis_rawat ?? ''),
+            (string) ($v->jenis_penjamin ?? ''),
+            (string) ($v->kelompok ?? ''),
+            (string) ($v->pangkat ?? ''),
+            (string) ($v->nip_nrp_pasien ?? ''),
+            self::normalizeGender($v->gender),
+            (string) ($v->agama ?? ''),
+            (string) ($v->pendidikan ?? ''),
+            (string) ($v->kesatuan ?? ''),
+            (string) ($v->instansi ?? ''),
+            (string) ($v->kategori ?? ''),
+            (string) ($v->alamat ?? ''),
+            (string) ($v->icd10_utama ?? ''),
+            (string) ($v->deskripsi_icd10_utama ?? ''),
+            (string) ($v->icd10_sekunder ?? ''),
+            (string) ($v->deskripsi_icd10_sekunder ?? ''),
+            (string) ($v->status_registrasi ?? 'open'),
+        ];
     }
 }

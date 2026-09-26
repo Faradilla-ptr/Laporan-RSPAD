@@ -11,16 +11,19 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $month = (int) $request->input('month', 6);
-        $year = (int) $request->input('year', 2026);
+        $month = (int) $request->input('month', (int) date('n'));
+        if ($month < 1 || $month > 12) {
+            $month = (int) date('n');
+        }
+        $year = (int) $request->input('year', (int) date('Y'));
+        if ($year < 2000 || $year > 2100) {
+            $year = (int) date('Y');
+        }
 
-        $query = RawVisit::query();
-        if ($month) {
-            $query->whereMonth('tgl_berobat', $month);
-        }
-        if ($year) {
-            $query->whereYear('tgl_berobat', $year);
-        }
+        $startDate = sprintf('%04d-%02d-01', $year, $month);
+        $endDate = date('Y-m-t', strtotime($startDate));
+
+        $query = RawVisit::query()->whereBetween('tgl_berobat', [$startDate, $endDate]);
 
         // Key Metrics
         $totalKunjungan = (clone $query)->count();

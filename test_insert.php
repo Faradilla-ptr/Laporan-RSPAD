@@ -1,22 +1,23 @@
 <?php
-require __DIR__ . '/vendor/autoload.php';
-$app = require_once __DIR__ . '/bootstrap/app.php';
-$kernel = $app->make(Illuminate\Contracts\Console\Kernel::class);
+
+require __DIR__.'/vendor/autoload.php';
+$app = require_once __DIR__.'/bootstrap/app.php';
+$kernel = $app->make(Kernel::class);
 $kernel->bootstrap();
 
-use App\Models\RawVisit;
 use App\Models\ImportLog;
-use Illuminate\Support\Facades\DB;
+use App\Models\RawVisit;
+use Illuminate\Contracts\Console\Kernel;
 
 $log = ImportLog::create([
     'filename' => 'test.xls',
     'user_id' => 1,
     'period_month' => 6,
     'period_year' => 2026,
-    'total_rows' => 1
+    'total_rows' => 1,
 ]);
 
-echo "Log ID created: " . $log->id . "\n";
+echo 'Log ID created: '.$log->id."\n";
 
 RawVisit::create([
     'import_log_id' => $log->id,
@@ -29,7 +30,7 @@ RawVisit::create([
     'jenis_penjamin' => 'BPJS DINAS',
     'kelompok' => 'MILITAR AD',
     'gender' => 'L',
-    'status_registrasi' => 'open'
+    'status_registrasi' => 'open',
 ]);
 
-echo "RawVisit count after insert: " . RawVisit::count() . "\n";
+echo 'RawVisit count after insert: '.RawVisit::count()."\n";

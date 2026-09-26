@@ -14,6 +14,7 @@ class AuthController extends Controller
         if (Auth::check()) {
             return redirect()->route('dashboard');
         }
+
         return view('auth.login');
     }
 
@@ -30,8 +31,9 @@ class AuthController extends Controller
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
+
             return redirect()->intended(route('dashboard'))
-                ->with('success', 'Selamat datang kembali, ' . Auth::user()->name);
+                ->with('success', 'Selamat datang kembali, '.Auth::user()->name);
         }
 
         return back()->withErrors([
@@ -44,17 +46,18 @@ class AuthController extends Controller
         if (Auth::check()) {
             return redirect()->route('dashboard');
         }
+
         return view('auth.register');
     }
 
     public function register(Request $request)
     {
         $validated = $request->validate([
-            'name'     => 'required|string|max:255',
-            'email'    => 'required|string|email|max:255|unique:users',
+            'name' => 'required|string|max:255',
+            'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
-            'role'     => 'required|in:petugas,admin,pimpinan',
-            'nip_nrp'  => 'nullable|string|max:100',
+            'role' => 'required|in:petugas,admin,pimpinan',
+            'nip_nrp' => 'nullable|string|max:100',
         ], [
             'name.required' => 'Nama lengkap wajib diisi.',
             'email.required' => 'Alamat email wajib diisi.',
@@ -66,11 +69,11 @@ class AuthController extends Controller
         ]);
 
         $user = User::create([
-            'name'     => $validated['name'],
-            'email'    => $validated['email'],
+            'name' => $validated['name'],
+            'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
-            'role'     => $validated['role'],
-            'nip_nrp'  => $validated['nip_nrp'] ?? null,
+            'role' => $validated['role'],
+            'nip_nrp' => $validated['nip_nrp'] ?? null,
         ]);
 
         Auth::login($user);
