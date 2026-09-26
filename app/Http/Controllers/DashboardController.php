@@ -2,8 +2,8 @@
 
 namespace App\Http\Controllers;
 
-use App\Models\RawVisit;
 use App\Models\ImportLog;
+use App\Models\RawVisit;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -11,8 +11,8 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $month = $request->input('month', 8);
-        $year  = $request->input('year', 2026);
+        $month = (int) $request->input('month', 6);
+        $year = (int) $request->input('year', 2026);
 
         $query = RawVisit::query();
         if ($month) {
@@ -22,17 +22,22 @@ class DashboardController extends Controller
             $query->whereYear('tgl_berobat', $year);
         }
 
-        // Metrics
-        $totalKunjungan  = (clone $query)->count();
+        // Key Metrics
+        $totalKunjungan = (clone $query)->count();
         $totalPengunjung = (clone $query)->distinct('no_rm')->count('no_rm');
-        $pengunjungBaru  = (clone $query)->where('status_pasien', 'Pasien Baru')->distinct('no_rm')->count('no_rm');
-        $pengunjungLama  = (clone $query)->where('status_pasien', 'Pasien Lama')->distinct('no_rm')->count('no_rm');
+        $pengunjungBaru = (clone $query)->where('status_pasien', 'Pasien Baru')->distinct('no_rm')->count('no_rm');
+        $pengunjungLama = (clone $query)->where('status_pasien', 'Pasien Lama')->distinct('no_rm')->count('no_rm');
 
-        // Total TNI AD & Tanggungan vs General / BPJS
-        $totalMiliterTni = (clone $query)->whereIn('kelompok', ['MILITER TNI AD', 'KELUARGA MILITER', 'PNS KEMHAN/TNI', 'KELUARGA PNS', 'PURNAWIRAWAN'])->count();
-        $totalBpjsUmum   = (clone $query)->whereIn('kelompok', ['BPJS PBI', 'BPJS MANDIRI / SWASTA', 'UMUM / TUNAI'])->count();
+        // TNI AD & Dinas vs BPJS & Umum Breakdown
+        $totalMiliterTni = (clone $query)->whereIn('kelompok', [
+            'MILITER TNI AD', 'KELUARGA MILITER', 'PNS KEMHAN/TNI', 'KELUARGA PNS', 'PURNAWIRAWAN', 'MILITER TNI AL', 'MILITER TNI AU',
+        ])->count();
 
-        // Kelompok Breakdown (For Pie / Doughnut Chart)
+        $totalBpjsUmum = (clone $query)->whereIn('kelompok', [
+            'BPJS PBI', 'BPJS MANDIRI / SWASTA', 'UMUM / TUNAI', 'POLRI & KELUARGA',
+        ])->count();
+
+        // Kelompok Breakdown (For Doughnut Chart & Table)
         $kelompokBreakdown = (clone $query)
             ->select('kelompok', DB::raw('count(*) as total_kunjungan'), DB::raw('count(distinct no_rm) as total_pengunjung'))
             ->groupBy('kelompok')
@@ -42,6 +47,8 @@ class DashboardController extends Controller
         // Poliklinik Top 10 Breakdown (For Bar Chart)
         $poliBreakdown = (clone $query)
             ->select('poliklinik', DB::raw('count(*) as total'))
+            ->whereNotNull('poliklinik')
+            ->where('poliklinik', '!=', '')
             ->groupBy('poliklinik')
             ->orderByDesc('total')
             ->limit(10)
@@ -49,12 +56,24 @@ class DashboardController extends Controller
 
         // Daily Trend (For Line Chart)
         $dailyTrend = (clone $query)
-            ->select(DB::raw('DATE(tgl_berobat) as date'), DB::raw('count(*) as total_kunjungan'), DB::raw('count(distinct no_rm) as total_pengunjung'))
-            ->groupBy('date')
-            ->orderBy('date')
+            ->select(
+                DB::raw('DATE(tgl_berobat) as date'),
+                DB::raw('count(*) as total_kunjungan'),
+                DB::raw('count(distinct no_rm) as total_pengunjung')
+            )
+            ->whereNotNull('tgl_berobat')
+            ->groupBy(DB::raw('DATE(tgl_berobat)'))
+            ->orderBy('date', 'asc')
             ->get();
 
         $recentImports = ImportLog::with('user')->latest()->limit(5)->get();
+
+        // Available Months & Years for Filter Dropdowns
+        $availableMonths = [
+            1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+            5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+            9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+        ];
 
         return view('dashboard', compact(
             'month',
@@ -68,7 +87,8 @@ class DashboardController extends Controller
             'kelompokBreakdown',
             'poliBreakdown',
             'dailyTrend',
-            'recentImports'
+            'recentImports',
+            'availableMonths'
         ));
     }
 }
