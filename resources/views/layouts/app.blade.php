@@ -14,7 +14,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Bootstrap Icons -->
+    <!-- Bootstrap Icons (Local Asset Primary + Multi-CDN Fallbacks) -->
+    <link rel="stylesheet" href="{{ asset('vendor/bootstrap-icons/bootstrap-icons.min.css') }}">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/bootstrap-icons/1.11.3/font/bootstrap-icons.min.css" integrity="sha512-dPXYcDub/aeb08cmemwbmxsnUILbBHUvrxD621rYDQcdL7sGB82Nso09Fpu367VvhgceeqT9vUXTHleGJVy6g==" crossorigin="anonymous" referrerpolicy="no-referrer" />
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -68,6 +70,19 @@
             margin: 0;
             padding: 0;
             min-height: 100vh;
+        }
+
+        /* Enforce Bootstrap Icon font-family rendering */
+        i[class*=" bi-"], i[class^="bi-"], .bi {
+            font-family: 'bootstrap-icons' !important;
+            font-style: normal;
+            font-weight: normal !important;
+            font-variant: normal;
+            text-transform: none;
+            line-height: 1;
+            vertical-align: -.125em;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
         }
 
         /* Instant Centered Pop-up Modals (No Top-Slide Animation) */

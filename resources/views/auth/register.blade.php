@@ -200,7 +200,7 @@
 
                 <div class="mb-4">
                     <span class="hero-badge-pill mb-3">
-                        <i class="bi bi-person-plus-fill"></i> Pendaftaran Akun Pengguna
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg> Pendaftaran Akun Pengguna
                     </span>
                     <h4 class="fw-bold text-white lh-base mb-2">Registrasi Petugas & Pengelola Pelaporan</h4>
                     <p class="text-white small mb-0 opacity-90">Daftarkan akun baru untuk mengelola dan memantau pelaporan kunjungan pasien rawat jalan.</p>
@@ -209,15 +209,15 @@
 
             <div class="mt-4">
                 <div class="feature-list-item">
-                    <div class="feature-icon-box"><i class="bi bi-person-badge-fill"></i></div>
+                    <div class="feature-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
                     <span>Peran Petugas Input atau Admin Sistem</span>
                 </div>
                 <div class="feature-list-item">
-                    <div class="feature-icon-box"><i class="bi bi-shield-lock-fill"></i></div>
+                    <div class="feature-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
                     <span>Enkripsi Kata Sandi Standar Keamanan RSPAD</span>
                 </div>
                 <div class="feature-list-item">
-                    <div class="feature-icon-box"><i class="bi bi-speedometer2"></i></div>
+                    <div class="feature-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
                     <span>Akses Langsung ke Dashboard & Fitur Ekspor</span>
                 </div>
             </div>
@@ -243,8 +243,8 @@
             </div>
 
             @if($errors->any())
-                <div class="alert alert-danger border-0 shadow-sm small mb-3 py-2 px-3">
-                    <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ $errors->first() }}
+                <div class="alert alert-danger border-0 shadow-sm small mb-3 py-2 px-3 d-flex align-items-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> {{ $errors->first() }}
                 </div>
             @endif
 
@@ -258,7 +258,7 @@
                         <input type="text" class="form-control form-control-rspad ps-5 @error('name') is-invalid @enderror" 
                                id="name" name="name" value="{{ old('name') }}" 
                                placeholder="Contoh: dr. Fara Kusuma" required autofocus>
-                        <i class="bi bi-person text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted position-absolute start-0 top-50 translate-middle-y ms-3"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
                     </div>
                 </div>
 
@@ -269,7 +269,7 @@
                         <input type="email" class="form-control form-control-rspad ps-5 @error('email') is-invalid @enderror" 
                                id="email" name="email" value="{{ old('email') }}" 
                                placeholder="nama@rspad.go.id" required>
-                        <i class="bi bi-envelope text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted position-absolute start-0 top-50 translate-middle-y ms-3"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                     </div>
                 </div>
 
@@ -282,7 +282,7 @@
                                 <option value="petugas" {{ old('role') === 'petugas' ? 'selected' : '' }}>Petugas Input</option>
                                 <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Admin Sistem</option>
                             </select>
-                            <i class="bi bi-person-badge text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted position-absolute start-0 top-50 translate-middle-y ms-3"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle></svg>
                         </div>
                     </div>
                     <div class="col-md-6">
@@ -291,7 +291,7 @@
                             <input type="text" class="form-control form-control-rspad ps-5 @error('nip_nrp') is-invalid @enderror" 
                                    id="nip_nrp" name="nip_nrp" value="{{ old('nip_nrp') }}" 
                                    placeholder="199203152018012002">
-                            <i class="bi bi-card-heading text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted position-absolute start-0 top-50 translate-middle-y ms-3"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg>
                         </div>
                     </div>
                 </div>
@@ -302,9 +302,9 @@
                     <div class="position-relative">
                         <input type="password" class="form-control form-control-rspad ps-5 pe-5 @error('password') is-invalid @enderror" 
                                id="password" name="password" placeholder="Minimal 6 karakter" required>
-                        <i class="bi bi-lock text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
-                        <button type="button" class="password-toggle-btn" onclick="togglePassword('password', this)" title="Tampilkan/Sembunyikan Kata Sandi">
-                            <i class="bi bi-eye-slash fs-6"></i>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted position-absolute start-0 top-50 translate-middle-y ms-3"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        <button type="button" class="password-toggle-btn d-flex align-items-center justify-content-center" onclick="togglePassword('password', this)" title="Tampilkan/Sembunyikan Kata Sandi">
+                            <svg id="eyeIconPass" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
                         </button>
                     </div>
                 </div>
@@ -315,16 +315,16 @@
                     <div class="position-relative">
                         <input type="password" class="form-control form-control-rspad ps-5 pe-5" 
                                id="password_confirmation" name="password_confirmation" placeholder="Ulangi kata sandi Anda" required>
-                        <i class="bi bi-shield-lock text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
-                        <button type="button" class="password-toggle-btn" onclick="togglePassword('password_confirmation', this)" title="Tampilkan/Sembunyikan Kata Sandi">
-                            <i class="bi bi-eye-slash fs-6"></i>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted position-absolute start-0 top-50 translate-middle-y ms-3"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        <button type="button" class="password-toggle-btn d-flex align-items-center justify-content-center" onclick="togglePassword('password_confirmation', this)" title="Tampilkan/Sembunyikan Kata Sandi">
+                            <svg id="eyeIconConfirm" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
                         </button>
                     </div>
                 </div>
 
                 <!-- Submit Button -->
-                <button type="submit" class="btn btn-rspad-auth w-100 mb-3 mt-2">
-                    <i class="bi bi-person-check-fill me-1"></i> Daftar Akun Baru
+                <button type="submit" class="btn btn-rspad-auth w-100 mb-3 mt-2 d-flex align-items-center justify-content-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg> Daftar Akun Baru
                 </button>
             </form>
 
@@ -344,15 +344,17 @@
 <script>
     function togglePassword(inputId, btn) {
         const input = document.getElementById(inputId);
-        const icon = btn.querySelector('i');
+        const eyeSvg = btn.querySelector('svg');
         if (input.type === 'password') {
             input.type = 'text';
-            icon.classList.remove('bi-eye-slash');
-            icon.classList.add('bi-eye');
+            if (eyeSvg) {
+                eyeSvg.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
+            }
         } else {
             input.type = 'password';
-            icon.classList.remove('bi-eye');
-            icon.classList.add('bi-eye-slash');
+            if (eyeSvg) {
+                eyeSvg.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
+            }
         }
     }
 </script>

@@ -35,7 +35,11 @@ class DatabaseSeeder extends Seeder
         );
 
         // 2. Import Real XLS Sample Data if available and table is empty
-        $xlsPath = base_path('extracted/laporan-rspad/LAPORAN_KUNJUNGAN_PASIEN_1790146382.xls');
+        $xlsPath = database_path('seeders/data/sample_laporan.xls');
+        if (! file_exists($xlsPath)) {
+            $xlsPath = base_path('extracted/laporan-rspad/LAPORAN_KUNJUNGAN_PASIEN_1790146382.xls');
+        }
+
         if (file_exists($xlsPath) && RawVisit::count() === 0) {
             $this->command->info("Seeding data from real XLS: {$xlsPath}");
             try {

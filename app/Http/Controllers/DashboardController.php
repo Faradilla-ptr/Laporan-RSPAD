@@ -11,13 +11,17 @@ class DashboardController extends Controller
 {
     public function index(Request $request)
     {
-        $month = (int) $request->input('month', (int) date('n'));
+        $latestDate = RawVisit::max('tgl_berobat');
+        $defaultMonth = $latestDate ? (int) date('n', strtotime($latestDate)) : (int) date('n');
+        $defaultYear = $latestDate ? (int) date('Y', strtotime($latestDate)) : (int) date('Y');
+
+        $month = (int) $request->input('month', $defaultMonth);
         if ($month < 1 || $month > 12) {
-            $month = (int) date('n');
+            $month = $defaultMonth;
         }
-        $year = (int) $request->input('year', (int) date('Y'));
+        $year = (int) $request->input('year', $defaultYear);
         if ($year < 2000 || $year > 2100) {
-            $year = (int) date('Y');
+            $year = $defaultYear;
         }
 
         $startDate = sprintf('%04d-%02d-01', $year, $month);

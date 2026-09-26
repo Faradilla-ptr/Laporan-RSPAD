@@ -233,7 +233,7 @@
 
                 <div class="mb-4">
                     <span class="hero-badge-pill mb-3">
-                        <i class="bi bi-shield-check"></i> Portal Pelaporan Resmi
+                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg> Portal Pelaporan Resmi
                     </span>
                     <h4 class="fw-bold text-white lh-base mb-2">Sistem Rekapitulasi Pelaporan Rawat Jalan</h4>
                     <p class="text-white small mb-0 opacity-90">Integrasi data kunjungan pasien rawat jalan SIMRS RSPAD Gatot Soebroto dan Laporan Puskesad.</p>
@@ -242,15 +242,21 @@
 
             <div class="mt-4">
                 <div class="feature-list-item">
-                    <div class="feature-icon-box"><i class="bi bi-file-earmark-excel-fill"></i></div>
+                    <div class="feature-icon-box">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="17"></line><line x1="16" y1="13" x2="8" y2="17"></line></svg>
+                    </div>
                     <span>Ekspor Excel 31 Kolom Sesuai Standardisasi Form</span>
                 </div>
                 <div class="feature-list-item">
-                    <div class="feature-icon-box"><i class="bi bi-pie-chart-fill"></i></div>
+                    <div class="feature-icon-box">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
+                    </div>
                     <span>Klasifikasi Otomatis Kelompok TNI AD & Umum</span>
                 </div>
                 <div class="feature-list-item">
-                    <div class="feature-icon-box"><i class="bi bi-lock-fill"></i></div>
+                    <div class="feature-icon-box">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                    </div>
                     <span>Akses Berbasis Peran (Petugas & Admin)</span>
                 </div>
             </div>
@@ -276,14 +282,14 @@
             </div>
 
             @if(session('success'))
-                <div class="alert alert-success border-0 shadow-sm small mb-3 py-2 px-3" style="background-color: #E8F5E9; color: #2A6A2A;">
-                    <i class="bi bi-check-circle-fill me-1"></i> {{ session('success') }}
+                <div class="alert alert-success border-0 shadow-sm small mb-3 py-2 px-3 d-flex align-items-center gap-2" style="background-color: #E8F5E9; color: #2A6A2A;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> {{ session('success') }}
                 </div>
             @endif
 
             @if($errors->any())
-                <div class="alert alert-danger border-0 shadow-sm small mb-3 py-2 px-3">
-                    <i class="bi bi-exclamation-triangle-fill me-1"></i> {{ $errors->first() }}
+                <div class="alert alert-danger border-0 shadow-sm small mb-3 py-2 px-3 d-flex align-items-center gap-2">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> {{ $errors->first() }}
                 </div>
             @endif
 
@@ -297,7 +303,7 @@
                         <input type="email" class="form-control form-control-rspad ps-5 @error('email') is-invalid @enderror" 
                                id="email" name="email" value="{{ old('email') }}" 
                                placeholder="nama@rspad.go.id" required autofocus>
-                        <i class="bi bi-envelope text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted position-absolute start-0 top-50 translate-middle-y ms-3"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                     </div>
                 </div>
 
@@ -309,9 +315,9 @@
                     <div class="position-relative">
                         <input type="password" class="form-control form-control-rspad ps-5 pe-5 @error('password') is-invalid @enderror" 
                                id="password" name="password" placeholder="••••••••" required>
-                        <i class="bi bi-lock text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
-                        <button type="button" class="password-toggle-btn" onclick="togglePassword('password', this)" title="Tampilkan/Sembunyikan Kata Sandi">
-                            <i class="bi bi-eye-slash fs-6"></i>
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted position-absolute start-0 top-50 translate-middle-y ms-3"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
+                        <button type="button" class="password-toggle-btn d-flex align-items-center justify-content-center" onclick="togglePassword('password', this)" title="Tampilkan/Sembunyikan Kata Sandi">
+                            <svg id="eyeIcon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
                         </button>
                     </div>
                 </div>
@@ -325,8 +331,8 @@
                 </div>
 
                 <!-- Submit Button -->
-                <button type="submit" class="btn btn-rspad-auth w-100 mb-3">
-                    <i class="bi bi-box-arrow-in-right me-1"></i> Masuk Akun
+                <button type="submit" class="btn btn-rspad-auth w-100 mb-3 d-flex align-items-center justify-content-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path><polyline points="10 17 15 12 10 7"></polyline><line x1="15" y1="12" x2="3" y2="12"></line></svg> Masuk Akun
                 </button>
             </form>
 
@@ -339,7 +345,7 @@
             <!-- Quick Demo Credentials Selector -->
             <div class="demo-credentials-box">
                 <div class="fw-bold text-dark mb-2 d-flex align-items-center justify-content-between">
-                    <span><i class="bi bi-key-fill text-warning me-1"></i> Akun Akses Uji Coba:</span>
+                    <span class="d-flex align-items-center gap-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #d97706;"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg> Akun Akses Uji Coba:</span>
                     <span class="text-muted extra-small">Klik untuk isi otomatis</span>
                 </div>
                 <div class="d-flex flex-wrap gap-1 mb-2">
@@ -361,15 +367,13 @@
 <script>
     function togglePassword(inputId, btn) {
         const input = document.getElementById(inputId);
-        const icon = btn.querySelector('i');
+        const eyeSvg = document.getElementById('eyeIcon');
         if (input.type === 'password') {
             input.type = 'text';
-            icon.classList.remove('bi-eye-slash');
-            icon.classList.add('bi-eye');
+            eyeSvg.innerHTML = '<path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle>';
         } else {
             input.type = 'password';
-            icon.classList.remove('bi-eye');
-            icon.classList.add('bi-eye-slash');
+            eyeSvg.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
         }
     }
 
