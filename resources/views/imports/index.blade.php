@@ -106,32 +106,6 @@
                                 </button>
                             </td>
                         </tr>
-
-                        <!-- Modal Delete Single Log -->
-                        <div class="modal fade" id="modalDeleteLog{{ $log->id }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog modal-dialog-centered">
-                                <div class="modal-content">
-                                    <div class="modal-header border-bottom-0 pb-0">
-                                        <h6 class="modal-title fw-bold text-danger">Konfirmasi Hapus File Import</h6>
-                                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                                    </div>
-                                    <div class="modal-body py-3">
-                                        <p class="mb-2">Apakah Anda yakin ingin menghapus berkas import <strong>{{ $log->filename }}</strong>?</p>
-                                        <div class="alert alert-warning small mb-0 py-2">
-                                             Tindakan ini akan menghapus seluruh <strong>{{ number_format($log->total_rows) }} baris data kunjungan</strong> yang terkait dengan file ini dari database.
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer border-top-0 pt-0">
-                                        <button type="button" class="btn btn-light btn-sm fw-semibold" data-bs-dismiss="modal">Batal</button>
-                                        <form action="{{ route('imports.destroy', $log->id) }}" method="POST" class="d-inline">
-                                            @csrf
-                                            @method('DELETE')
-                                            <button type="submit" class="btn btn-danger btn-sm fw-semibold">Ya, Hapus Data</button>
-                                        </form>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
                         @empty
                         <tr>
                             <td colspan="7" class="text-center text-muted py-4">Belum ada riwayat pengunggahan file.</td>
@@ -147,6 +121,34 @@
         </div>
     </div>
 </div>
+
+<!-- Modals for Deleting Single Log Files -->
+@foreach($importLogs as $log)
+<div class="modal fade" id="modalDeleteLog{{ $log->id }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom-0 pb-0">
+                <h6 class="modal-title fw-bold text-danger">Konfirmasi Hapus File Import</h6>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body py-3">
+                <p class="mb-2">Apakah Anda yakin ingin menghapus berkas import <strong>{{ $log->filename }}</strong>?</p>
+                <div class="alert alert-warning small mb-0 py-2">
+                     Tindakan ini akan menghapus seluruh <strong>{{ number_format($log->total_rows) }} baris data kunjungan</strong> yang terkait dengan file ini dari database.
+                </div>
+            </div>
+            <div class="modal-footer border-top-0 pt-0">
+                <button type="button" class="btn btn-light btn-sm fw-semibold" data-bs-dismiss="modal">Batal</button>
+                <form action="{{ route('imports.destroy', $log->id) }}" method="POST" class="d-inline">
+                    @csrf
+                    @method('DELETE')
+                    <button type="submit" class="btn btn-danger btn-sm fw-semibold">Ya, Hapus Data</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+@endforeach
 
 <!-- Modal Truncate All Data -->
 <div class="modal fade" id="modalTruncateAll" tabindex="-1" aria-hidden="true">

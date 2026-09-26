@@ -10,13 +10,13 @@ class ReportPuskesadController extends Controller
 {
     public function index(Request $request)
     {
-        $month = (int) $request->input('month', 8);
+        $month = (int) $request->input('month', (int) date('n'));
         if ($month < 1 || $month > 12) {
-            $month = 8;
+            $month = (int) date('n');
         }
-        $year = (int) $request->input('year', 2026);
+        $year = (int) $request->input('year', (int) date('Y'));
         if ($year < 2000 || $year > 2100) {
-            $year = 2026;
+            $year = (int) date('Y');
         }
         $poli = $request->input('poli', 'SEMUA');
 

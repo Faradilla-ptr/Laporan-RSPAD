@@ -34,16 +34,6 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        $pimpinan = User::updateOrCreate(
-            ['email' => 'pimpinan@rspad.go.id'],
-            [
-                'name' => 'Kepala Bagian Pelaporan',
-                'password' => Hash::make('password123'),
-                'role' => 'pimpinan',
-                'nip_nrp' => '21960097120275',
-            ]
-        );
-
         // 2. Import Real XLS Sample Data if available and table is empty
         $xlsPath = base_path('extracted/laporan-rspad/LAPORAN_KUNJUNGAN_PASIEN_1790146382.xls');
         if (file_exists($xlsPath) && RawVisit::count() === 0) {

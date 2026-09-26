@@ -5,7 +5,7 @@
 @section('content')
 <!-- Filter & Header Bar -->
 <div class="card-panel p-4 mb-4" style="border-left: 5px solid var(--palette-5);">
-    <form action="{{ route('dashboard') }}" method="GET" class="row g-3 align-items-center">
+    <form action="{{ url()->current() }}" method="GET" class="row g-3 align-items-center">
         <div class="col-lg-5 col-md-12">
             <div>
                 <h5 class="fw-bold mb-0 text-dark">Dashboard Rekapitulasi Pelaporan SIMRS</h5>
@@ -411,9 +411,7 @@
                     },
                     scales: {
                         x: {
-                            display: true,
-                            grid: { display: false },
-                            ticks: { font: { size: 11 }, maxRotation: 45 }
+                            display: false,
                         },
                         y: {
                             beginAtZero: true,

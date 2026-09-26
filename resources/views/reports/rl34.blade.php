@@ -4,12 +4,7 @@
 
 @section('content')
 
-@if(session('success'))
-<div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
-    <i class="fas me-2">✅</i> {{ session('success') }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
-@endif
+
 
 <!-- Header Card & Filter Bar -->
 <div class="card-panel p-4 mb-4">
@@ -18,7 +13,7 @@
         <p class="text-muted small mb-0">Laporan rekapitulasi jumlah pengunjung baru dan pengunjung lama rumah sakit</p>
     </div>
 
-    <form action="{{ route('reports.rl34') }}" method="GET" class="row g-2 align-items-end">
+    <form action="{{ url()->current() }}" method="GET" class="row g-2 align-items-end">
         <div class="col-lg-3 col-md-6">
             <label class="form-label fw-semibold small text-muted mb-1"><i class="bi bi-calendar-month me-1"></i>Bulan Periode</label>
             <select name="month" class="form-select form-select-sm">
@@ -154,7 +149,7 @@
 
 <!-- EDIT MODAL 1: Pengunjung Baru -->
 <div class="modal fade" id="editRL34Modal1" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <form action="{{ route('reports.rl34.update') }}" method="POST" class="modal-content">
             @csrf
             @method('PUT')
@@ -186,7 +181,7 @@
 
 <!-- DELETE MODAL 1: Pengunjung Baru -->
 <div class="modal fade" id="deleteRL34Modal1" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <form action="{{ route('reports.rl34.destroy') }}" method="POST" class="modal-content">
             @csrf
             @method('DELETE')
@@ -212,7 +207,7 @@
 
 <!-- EDIT MODAL 2: Pengunjung Lama -->
 <div class="modal fade" id="editRL34Modal2" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <form action="{{ route('reports.rl34.update') }}" method="POST" class="modal-content">
             @csrf
             @method('PUT')
@@ -244,7 +239,7 @@
 
 <!-- DELETE MODAL 2: Pengunjung Lama -->
 <div class="modal fade" id="deleteRL34Modal2" tabindex="-1" aria-hidden="true">
-    <div class="modal-dialog">
+    <div class="modal-dialog modal-dialog-centered">
         <form action="{{ route('reports.rl34.destroy') }}" method="POST" class="modal-content">
             @csrf
             @method('DELETE')

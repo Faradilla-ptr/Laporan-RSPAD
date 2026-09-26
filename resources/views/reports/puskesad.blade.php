@@ -22,7 +22,7 @@
         </div>
     </div>
 
-    <form action="{{ route('reports.puskesad') }}" method="GET" class="row g-2 align-items-center">
+    <form action="{{ url()->current() }}" method="GET" class="row g-2 align-items-center">
         <div class="col-md-3">
             <label class="form-label fw-semibold small text-muted mb-1">Bulan Periode</label>
             <select name="month" class="form-select form-select-sm">

@@ -32,13 +32,15 @@ class AuthController extends Controller
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
             $request->session()->regenerate();
 
-            return redirect()->intended(route('dashboard'))
+            $role = Auth::user()->role === 'admin' ? 'admin' : 'petugas';
+
+            return redirect()->intended(route("{$role}.dashboard"))
                 ->with('success', 'Selamat datang kembali, '.Auth::user()->name);
         }
 
         return back()->withErrors([
             'email' => 'Email atau kata sandi yang Anda masukkan salah.',
-        ])->onlyInput('email');
+        ])->with('error', 'Email atau kata sandi yang Anda masukkan salah.')->onlyInput('email');
     }
 
     public function showRegister()
@@ -56,7 +58,7 @@ class AuthController extends Controller
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
             'password' => 'required|string|min:6|confirmed',
-            'role' => 'required|in:petugas,admin,pimpinan',
+            'role' => 'required|in:petugas,admin',
             'nip_nrp' => 'nullable|string|max:100',
         ], [
             'name.required' => 'Nama lengkap wajib diisi.',
@@ -78,7 +80,9 @@ class AuthController extends Controller
 
         Auth::login($user);
 
-        return redirect()->route('dashboard')
+        $role = $user->role === 'admin' ? 'admin' : 'petugas';
+
+        return redirect()->route("{$role}.dashboard")
             ->with('success', 'Registrasi berhasil! Selamat datang di Sistem Informasi Pelaporan RSPAD Gatot Soebroto.');
     }
 

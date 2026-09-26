@@ -9,7 +9,7 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: linear-gradient(135deg, #4d5350 0%, #5b7653 50%, #4d5350 100%);
+        background: #ffffff;
         padding: 2rem 1rem;
         position: relative;
         overflow: hidden;
@@ -22,7 +22,7 @@
         width: 450px;
         height: 450px;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(142, 169, 134, 0.25) 0%, rgba(91, 118, 83, 0) 70%);
+        background: radial-gradient(circle, rgba(91, 118, 83, 0.05) 0%, rgba(255, 255, 255, 0) 70%);
         top: -100px;
         left: -100px;
         pointer-events: none;
@@ -34,7 +34,7 @@
         width: 500px;
         height: 500px;
         border-radius: 50%;
-        background: radial-gradient(circle, rgba(128, 159, 119, 0.2) 0%, rgba(91, 118, 83, 0) 70%);
+        background: radial-gradient(circle, rgba(91, 118, 83, 0.04) 0%, rgba(255, 255, 255, 0) 70%);
         bottom: -150px;
         right: -100px;
         pointer-events: none;
@@ -43,20 +43,20 @@
     .auth-card-container {
         background: #ffffff;
         border-radius: 16px;
-        box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
         overflow: hidden;
         width: 100%;
         max-width: 960px;
         display: flex;
         position: relative;
         z-index: 10;
-        border: 1px solid rgba(255, 255, 255, 0.2);
+        border: 1px solid #e2e8f0;
     }
 
     /* Left Hero Banner (Desktop) */
     .auth-hero-banner {
         flex: 1;
-        background: linear-gradient(145deg, #5b7653 0%, #67855e 100%);
+        background: linear-gradient(145deg, #23422E 0%, #2E5A3C 100%);
         color: #ffffff;
         padding: 3rem 2.5rem;
         display: flex;
@@ -70,7 +70,7 @@
         content: '';
         position: absolute;
         top: 0; right: 0; bottom: 0; left: 0;
-        background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.08), transparent 60%);
+        background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.12), transparent 60%);
         pointer-events: none;
     }
 
@@ -84,14 +84,14 @@
         display: inline-flex;
         align-items: center;
         gap: 8px;
-        background: rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.2);
         backdrop-filter: blur(8px);
         padding: 6px 14px;
         border-radius: 50px;
-        font-size: 0.78rem;
-        font-weight: 600;
-        color: #8ea986;
-        border: 1px solid rgba(255, 255, 255, 0.15);
+        font-size: 0.8rem;
+        font-weight: 700;
+        color: #ffffff !important;
+        border: 1px solid rgba(255, 255, 255, 0.35);
     }
 
     .feature-list-item {
@@ -99,19 +99,20 @@
         align-items: center;
         gap: 12px;
         margin-bottom: 1rem;
-        font-size: 0.88rem;
-        color: #E2E8F0;
+        font-size: 0.9rem;
+        color: #ffffff !important;
+        font-weight: 500;
     }
 
     .feature-icon-box {
-        width: 32px;
-        height: 32px;
+        width: 34px;
+        height: 34px;
         border-radius: 8px;
-        background: rgba(255, 255, 255, 0.12);
+        background: rgba(255, 255, 255, 0.22);
         display: flex;
         align-items: center;
         justify-content: center;
-        color: #8ea986;
+        color: #ffffff !important;
         flex-shrink: 0;
     }
 
@@ -139,7 +140,7 @@
     }
 
     .form-control-rspad {
-        border: 1.5px solid #676c6a;
+        border: 1.5px solid #cbd5e1;
         border-radius: 10px;
         padding: 0.7rem 0.9rem;
         font-size: 0.9rem;
@@ -147,8 +148,8 @@
     }
 
     .form-control-rspad:focus {
-        border-color: #67855e;
-        box-shadow: 0 0 0 4px rgba(103, 133, 94, 0.2);
+        border-color: #2E5A3C;
+        box-shadow: 0 0 0 4px rgba(46, 90, 60, 0.15);
         outline: none;
     }
 
@@ -168,25 +169,25 @@
     }
 
     .password-toggle-btn:hover {
-        color: #5b7653;
+        color: #2E5A3C;
     }
 
     .btn-rspad-auth {
-        background: linear-gradient(135deg, #67855e 0%, #729468 100%);
-        color: #ffffff;
+        background: linear-gradient(135deg, #2E5A3C 0%, #3B6E4A 100%);
+        color: #ffffff !important;
         font-weight: 600;
         padding: 0.75rem;
         border-radius: 10px;
         border: none;
         font-size: 0.95rem;
-        box-shadow: 0 4px 12px rgba(91, 118, 83, 0.25);
+        box-shadow: 0 4px 12px rgba(46, 90, 60, 0.25);
         transition: all 0.2s ease;
     }
 
     .btn-rspad-auth:hover {
-        background: linear-gradient(135deg, #5b7653 0%, #67855e 100%);
-        box-shadow: 0 6px 16px rgba(91, 118, 83, 0.35);
-        color: #ffffff;
+        background: linear-gradient(135deg, #23422E 0%, #2E5A3C 100%);
+        box-shadow: 0 6px 16px rgba(46, 90, 60, 0.35);
+        color: #ffffff !important;
         transform: translateY(-1px);
     }
 
@@ -211,7 +212,7 @@
     }
 
     .demo-chip:hover {
-        background: #3B8A3B;
+        background: #2E5A3C;
         color: #ffffff;
     }
 </style>
@@ -226,7 +227,7 @@
                     <img src="{{ asset('images/logo-rspad.png') }}" alt="RSPAD Logo" class="brand-hero-logo">
                     <div>
                         <h3 class="fw-bold text-white mb-0 tracking-wide">RSPAD</h3>
-                        <p class="text-white-50 mb-0 font-monospace small">GATOT SOEBROTO</p>
+                        <p class="text-white mb-0 font-monospace small opacity-90">GATOT SOEBROTO</p>
                     </div>
                 </div>
 
@@ -235,7 +236,7 @@
                         <i class="bi bi-shield-check"></i> Portal Pelaporan Resmi
                     </span>
                     <h4 class="fw-bold text-white lh-base mb-2">Sistem Rekapitulasi Pelaporan Rawat Jalan</h4>
-                    <p class="text-white-50 small mb-0">Integrasi data kunjungan pasien rawat jalan SIMRS RSPAD Gatot Soebroto dan Laporan Puskesad.</p>
+                    <p class="text-white small mb-0 opacity-90">Integrasi data kunjungan pasien rawat jalan SIMRS RSPAD Gatot Soebroto dan Laporan Puskesad.</p>
                 </div>
             </div>
 
@@ -250,11 +251,11 @@
                 </div>
                 <div class="feature-list-item">
                     <div class="feature-icon-box"><i class="bi bi-lock-fill"></i></div>
-                    <span>Akses Berbasis Peran (Petugas, Admin, Pimpinan)</span>
+                    <span>Akses Berbasis Peran (Petugas & Admin)</span>
                 </div>
             </div>
 
-            <div class="pt-4 border-top border-white border-opacity-10 text-white-50 extra-small">
+            <div class="pt-4 border-top border-white border-opacity-20 text-white extra-small opacity-90">
                 &copy; {{ date('Y') }} Subdit Pelaporan Medis RSPAD Gatot Soebroto.
             </div>
         </div>
@@ -332,7 +333,7 @@
             <!-- Register Link -->
             <div class="text-center mb-4">
                 <span class="text-muted small">Belum memiliki akun? </span>
-                <a href="{{ route('register') }}" class="fw-semibold text-decoration-none" style="color: #2A6A2A;">Daftar Akun Baru</a>
+                <a href="{{ route('register') }}" class="fw-semibold text-decoration-none" style="color: #2E5A3C;">Daftar Akun Baru</a>
             </div>
 
             <!-- Quick Demo Credentials Selector -->
@@ -344,7 +345,6 @@
                 <div class="d-flex flex-wrap gap-1 mb-2">
                     <button type="button" class="demo-chip" onclick="fillDemo('petugas@rspad.go.id', 'password123')">Petugas</button>
                     <button type="button" class="demo-chip" onclick="fillDemo('admin@rspad.go.id', 'password123')">Admin</button>
-                    <button type="button" class="demo-chip" onclick="fillDemo('pimpinan@rspad.go.id', 'password123')">Pimpinan</button>
                 </div>
                 <div class="text-muted" style="font-size: 0.75rem;">
                     Password default: <code class="bg-white px-1 border rounded">password123</code>

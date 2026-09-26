@@ -70,6 +70,25 @@
             min-height: 100vh;
         }
 
+        /* Instant Centered Pop-up Modals (No Top-Slide Animation) */
+        .modal.fade .modal-dialog {
+            transition: opacity 0.15s ease-in-out !important;
+            transform: none !important;
+        }
+        .modal-dialog {
+            margin-top: auto !important;
+            margin-bottom: auto !important;
+        }
+        .modal-body {
+            white-space: normal !important;
+            word-wrap: break-word !important;
+            overflow-wrap: break-word !important;
+        }
+        .modal-content {
+            max-width: 100% !important;
+            overflow: hidden;
+        }
+
         /* App Layout Wrapper */
         .app-wrapper {
             display: flex;
@@ -537,9 +556,13 @@
 
             <!-- Sidebar Navigation Links -->
             <nav class="sidebar-nav">
+                @php
+                    $rolePrefix = (Auth::check() && Auth::user()->role === 'admin') ? 'admin' : 'petugas';
+                @endphp
+
                 <div class="nav-category">Navigasi Utama</div>
                 
-                <a href="{{ route('dashboard') }}" class="sidebar-link {{ request()->routeIs('dashboard') ? 'active' : '' }}" title="Dashboard">
+                <a href="{{ route($rolePrefix . '.dashboard') }}" class="sidebar-link {{ request()->routeIs('*.dashboard') || request()->routeIs('dashboard') ? 'active' : '' }}" title="Dashboard">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <rect x="3" y="3" width="7" height="7"></rect>
                         <rect x="14" y="3" width="7" height="7"></rect>
@@ -549,7 +572,7 @@
                     <span>Dashboard</span>
                 </a>
 
-                <a href="{{ route('imports.index') }}" class="sidebar-link {{ request()->routeIs('imports.*') ? 'active' : '' }}" title="Import SIMRS">
+                <a href="{{ route($rolePrefix . '.imports.index') }}" class="sidebar-link {{ request()->routeIs('*.imports.*') || request()->routeIs('imports.*') ? 'active' : '' }}" title="Import SIMRS">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
                         <polyline points="17 8 12 3 7 8"></polyline>
@@ -560,7 +583,7 @@
 
                 <div class="nav-category mt-3">Laporan Rekapitulasi</div>
 
-                <a href="{{ route('reports.rl34') }}" class="sidebar-link {{ request()->routeIs('reports.rl34') ? 'active' : '' }}" title="RL 3.4 (Pengunjung)">
+                <a href="{{ route($rolePrefix . '.reports.rl34') }}" class="sidebar-link {{ request()->routeIs('*.reports.rl34') || request()->routeIs('reports.rl34') ? 'active' : '' }}" title="RL 3.4 (Pengunjung)">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
                         <circle cx="9" cy="7" r="4"></circle>
@@ -570,7 +593,7 @@
                     <span>RL 3.4 (Pengunjung)</span>
                 </a>
 
-                <a href="{{ route('reports.rl35') }}" class="sidebar-link {{ request()->routeIs('reports.rl35') ? 'active' : '' }}" title="RL 3.5 (Kunjungan Poli)">
+                <a href="{{ route($rolePrefix . '.reports.rl35') }}" class="sidebar-link {{ request()->routeIs('*.reports.rl35') || request()->routeIs('reports.rl35') ? 'active' : '' }}" title="RL 3.5 (Kunjungan Poli)">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="18" y1="20" x2="18" y2="10"></line>
                         <line x1="12" y1="20" x2="12" y2="4"></line>
@@ -579,7 +602,7 @@
                     <span>RL 3.5 (Kunjungan Poli)</span>
                 </a>
 
-                <a href="{{ route('reports.puskesad') }}" class="sidebar-link {{ request()->routeIs('reports.puskesad') ? 'active' : '' }}" title="Laporan Puskesad">
+                <a href="{{ route($rolePrefix . '.reports.puskesad') }}" class="sidebar-link {{ request()->routeIs('*.reports.puskesad') || request()->routeIs('reports.puskesad') ? 'active' : '' }}" title="Laporan Puskesad">
                     <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
                         <polyline points="14 2 14 8 20 8"></polyline>
@@ -625,23 +648,61 @@
         <div class="app-main">
             <!-- Content Area (Clean Workspace without Header Bar) -->
             <main class="container-fluid p-4">
+                <!-- Universal Notification Pop-up Modal -->
                 @if(session('success'))
-                    <div class="alert alert-success alert-dismissible fade show border-0 shadow-sm py-2 px-3 mb-3 small" style="background-color: var(--palette-1); color: var(--palette-5);" role="alert">
-                        {{ session('success') }}
-                        <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+                <div class="modal fade show d-block" id="appSuccessNotificationModal" tabindex="-1" style="background: rgba(0, 0, 0, 0.45); z-index: 1070;" aria-modal="true" role="dialog">
+                    <div class="modal-dialog modal-dialog-centered modal-sm">
+                        <div class="modal-content border-0 shadow-lg text-center p-3" style="border-radius: 16px;">
+                            <div class="modal-body p-3">
+                                <div class="mb-3 d-inline-flex align-items-center justify-content-center rounded-circle mx-auto" style="width: 58px; height: 58px; background-color: #E8F5E9; color: #2E7D32;">
+                                    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                                </div>
+                                <h6 class="fw-bold text-dark mb-2">Berhasil!</h6>
+                                <p class="text-muted small mb-3">{{ session('success') }}</p>
+                                <button type="button" class="btn btn-sm btn-rspad-primary px-4 rounded-pill fw-semibold" onclick="document.getElementById('appSuccessNotificationModal').remove()">OK / Tutup</button>
+                            </div>
+                        </div>
                     </div>
+                </div>
+                <script>
+                    setTimeout(function() {
+                        var m = document.getElementById('appSuccessNotificationModal');
+                        if (m) {
+                            m.style.transition = 'opacity 0.25s ease';
+                            m.style.opacity = '0';
+                            setTimeout(function(){ m.remove(); }, 250);
+                        }
+                    }, 4000);
+                </script>
                 @endif
 
-                @if($errors->any())
-                    <div class="alert alert-danger alert-dismissible fade show border-0 shadow-sm py-2 px-3 mb-3 small" role="alert">
-                        <strong>Terjadi Kesalahan:</strong>
-                        <ul class="mb-0 ps-3 mt-1">
-                            @foreach($errors->all() as $error)
-                                <li>{{ $error }}</li>
-                            @endforeach
-                        </ul>
-                        <button type="button" class="btn-close py-2" data-bs-dismiss="alert"></button>
+                @if(session('error') || $errors->any())
+                <div class="modal fade show d-block" id="appErrorNotificationModal" tabindex="-1" style="background: rgba(0, 0, 0, 0.45); z-index: 1070;" aria-modal="true" role="dialog">
+                    <div class="modal-dialog modal-dialog-centered modal-sm">
+                        <div class="modal-content border-0 shadow-lg text-center p-3" style="border-radius: 16px;">
+                            <div class="modal-body p-3">
+                                <div class="mb-3 d-inline-flex align-items-center justify-content-center rounded-circle mx-auto" style="width: 58px; height: 58px; background-color: #FFEBEE; color: #C62828;">
+                                    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                                </div>
+                                <h6 class="fw-bold text-dark mb-2">Perhatian / Gagal</h6>
+                                <p class="text-muted small mb-3">
+                                    {{ session('error') ?? $errors->first() }}
+                                </p>
+                                <button type="button" class="btn btn-sm btn-danger px-4 rounded-pill fw-semibold text-white" onclick="document.getElementById('appErrorNotificationModal').remove()">Tutup</button>
+                            </div>
+                        </div>
                     </div>
+                </div>
+                <script>
+                    setTimeout(function() {
+                        var m = document.getElementById('appErrorNotificationModal');
+                        if (m) {
+                            m.style.transition = 'opacity 0.25s ease';
+                            m.style.opacity = '0';
+                            setTimeout(function(){ m.remove(); }, 250);
+                        }
+                    }, 5000);
+                </script>
                 @endif
 
                 @yield('content')

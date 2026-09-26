@@ -47,7 +47,7 @@ class ImportController extends Controller
         if (! in_array($ext, $allowedExtensions)) {
             return back()->withErrors([
                 'excel_file' => "Format berkas '.{$ext}' tidak didukung. Harap unggah berkas Excel (.xlsx, .xls, .xlsb, .xlsm, .csv, .ods, .tsv, .xml).",
-            ])->withInput();
+            ])->with('error', "Format berkas '.{$ext}' tidak didukung. Harap unggah berkas Excel (.xlsx, .xls, .csv).")->withInput();
         }
 
         // Ensure imports directory exists on local disk
@@ -230,11 +230,13 @@ class ImportController extends Controller
             $spreadsheet->disconnectWorksheets();
             unset($spreadsheet);
 
-            return redirect()->route('imports.index')
+            $role = (Auth::check() && Auth::user()->role === 'admin') ? 'admin' : 'petugas';
+
+            return redirect()->route("{$role}.imports.index")
                 ->with('success', "Berkas Excel '{$file->getClientOriginalName()}' ({$ext}) berhasil diimport! Total {$count} data kunjungan berhasil diproses.");
 
         } catch (\Exception $e) {
-            return back()->withErrors(['excel_file' => 'Gagal membaca berkas Excel: '.$e->getMessage()])->withInput();
+            return back()->withErrors(['excel_file' => 'Gagal membaca berkas Excel: '.$e->getMessage()])->with('error', 'Gagal membaca berkas Excel: '.$e->getMessage())->withInput();
         }
     }
 

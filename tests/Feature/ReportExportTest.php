@@ -12,9 +12,9 @@ class ReportExportTest extends TestCase
 
     public function test_dashboard_loads_fast()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
 
-        $response = $this->actingAs($user)->get('/dashboard?month=6&year=2026');
+        $response = $this->actingAs($user)->get('/admin/dashboard?month=6&year=2026');
 
         $response->assertStatus(200);
         $response->assertSee('Dashboard');
@@ -22,9 +22,9 @@ class ReportExportTest extends TestCase
 
     public function test_report_puskesad_loads()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
 
-        $response = $this->actingAs($user)->get('/reports/puskesad?month=6&year=2026');
+        $response = $this->actingAs($user)->get('/admin/reports/puskesad?month=6&year=2026');
 
         $response->assertStatus(200);
         $response->assertSee('Puskesad');
@@ -32,9 +32,9 @@ class ReportExportTest extends TestCase
 
     public function test_report_rl34_loads()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
 
-        $response = $this->actingAs($user)->get('/reports/rl34?month=6&year=2026');
+        $response = $this->actingAs($user)->get('/admin/reports/rl34?month=6&year=2026');
 
         $response->assertStatus(200);
         $response->assertSee('RL 3.4');
@@ -42,9 +42,9 @@ class ReportExportTest extends TestCase
 
     public function test_report_rl35_loads()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
 
-        $response = $this->actingAs($user)->get('/reports/rl35?month=6&year=2026');
+        $response = $this->actingAs($user)->get('/admin/reports/rl35?month=6&year=2026');
 
         $response->assertStatus(200);
         $response->assertSee('RL 3.5');
@@ -52,9 +52,9 @@ class ReportExportTest extends TestCase
 
     public function test_excel_export_puskesad_works()
     {
-        $user = User::factory()->create();
+        $user = User::factory()->create(['role' => 'admin']);
 
-        $response = $this->actingAs($user)->get('/reports/puskesad/export?month=6&year=2026&poli=SEMUA');
+        $response = $this->actingAs($user)->get('/admin/reports/puskesad/export?month=6&year=2026&poli=SEMUA');
 
         $response->assertStatus(200);
         $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');

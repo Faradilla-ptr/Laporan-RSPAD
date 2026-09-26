@@ -4,12 +4,7 @@
 
 @section('content')
 
-@if(session('success'))
-<div class="alert alert-success alert-dismissible fade show mb-4" role="alert">
-    <i class="fas me-2">✅</i> {{ session('success') }}
-    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-</div>
-@endif
+
 
 <!-- Header Card & Filter Bar -->
 <div class="card-panel p-4 mb-4">
@@ -18,7 +13,7 @@
         <p class="text-muted small mb-0">Laporan rekapitulasi total kunjungan pasien baru, lama, dan jenis pembayaran per poliklinik</p>
     </div>
 
-    <form action="{{ route('reports.rl35') }}" method="GET" class="row g-2 align-items-end">
+    <form action="{{ url()->current() }}" method="GET" class="row g-2 align-items-end">
         <div class="col-lg-3 col-md-6">
             <label class="form-label fw-semibold small text-muted mb-1"><i class="bi bi-calendar-month me-1"></i>Bulan Periode</label>
             <select name="month" class="form-select form-select-sm">
@@ -88,63 +83,6 @@
                             <button class="btn btn-sm text-white px-2 py-0" style="background-color: #f87171; font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#deletePoliModal{{ $idx }}">Hapus</button>
                             <button class="btn btn-sm text-white px-2 py-0" style="background-color: #a3e635; color: #3f6212 !important; font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#editPoliModal{{ $idx }}">Ubah</button>
                         </div>
-
-                        <!-- EDIT MODAL -->
-                        <div class="modal fade text-start" id="editPoliModal{{ $idx }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog">
-                                <form action="{{ route('reports.rl35.update') }}" method="POST" class="modal-content">
-                                    @csrf
-                                    @method('PUT')
-                                    <input type="hidden" name="month" value="{{ $month }}">
-                                    <input type="hidden" name="year" value="{{ $year }}">
-                                    <input type="hidden" name="poliklinik" value="{{ $p['poliklinik'] }}">
-
-                                    <div class="modal-header" style="background-color: #588b8b; color: white;">
-                                        <h5 class="modal-title fs-6 fw-bold">Ubah Nama Poliklinik</h5>
-                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        <div class="mb-3">
-                                            <label class="form-label fw-semibold">Nama Poliklinik Saat Ini:</label>
-                                            <input type="text" class="form-control" value="{{ $p['poliklinik'] }}" readonly>
-                                        </div>
-                                        <div class="mb-3">
-                                            <label class="form-label fw-semibold">Nama Poliklinik Baru:</label>
-                                            <input type="text" name="new_poliklinik" class="form-control" value="{{ $p['poliklinik'] }}" required>
-                                        </div>
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                        <button type="submit" class="btn btn-sm text-white" style="background-color: #588b8b;">Simpan Perubahan</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
-
-                        <!-- DELETE MODAL -->
-                        <div class="modal fade text-start" id="deletePoliModal{{ $idx }}" tabindex="-1" aria-hidden="true">
-                            <div class="modal-dialog">
-                                <form action="{{ route('reports.rl35.destroy') }}" method="POST" class="modal-content">
-                                    @csrf
-                                    @method('DELETE')
-                                    <input type="hidden" name="month" value="{{ $month }}">
-                                    <input type="hidden" name="year" value="{{ $year }}">
-                                    <input type="hidden" name="poliklinik" value="{{ $p['poliklinik'] }}">
-
-                                    <div class="modal-header bg-danger text-white">
-                                        <h5 class="modal-title fs-6 fw-bold">Konfirmasi Hapus Data Poliklinik</h5>
-                                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
-                                    </div>
-                                    <div class="modal-body">
-                                        Apakah Anda yakin ingin menghapus seluruh data kunjungan untuk <strong>{{ $p['poliklinik'] }}</strong> pada periode {{ DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }}? Total <strong>{{ number_format($p['total']) }}</strong> data kunjungan akan dihapus. Action ini tidak dapat dibatalkan.
-                                    </div>
-                                    <div class="modal-footer">
-                                        <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
-                                        <button type="submit" class="btn btn-sm btn-danger">Hapus Data</button>
-                                    </div>
-                                </form>
-                            </div>
-                        </div>
                     </td>
                     <td class="fw-semibold text-dark">{{ $p['poliklinik'] }}</td>
                     <td class="text-center">{{ number_format($p['dalam_kota_l']) }}</td>
@@ -172,6 +110,66 @@
         </table>
     </div>
 </div>
+
+<!-- EDIT & DELETE MODALS FOR RL 3.5 (Rendered outside table to prevent width overflow) -->
+@foreach($poliData as $idx => $p)
+<!-- EDIT MODAL -->
+<div class="modal fade text-start" id="editPoliModal{{ $idx }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form action="{{ route('reports.rl35.update') }}" method="POST" class="modal-content">
+            @csrf
+            @method('PUT')
+            <input type="hidden" name="month" value="{{ $month }}">
+            <input type="hidden" name="year" value="{{ $year }}">
+            <input type="hidden" name="poliklinik" value="{{ $p['poliklinik'] }}">
+
+            <div class="modal-header" style="background-color: #588b8b; color: white;">
+                <h5 class="modal-title fs-6 fw-bold">Ubah Nama Poliklinik</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nama Poliklinik Saat Ini:</label>
+                    <input type="text" class="form-control" value="{{ $p['poliklinik'] }}" readonly>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Nama Poliklinik Baru:</label>
+                    <input type="text" name="new_poliklinik" class="form-control" value="{{ $p['poliklinik'] }}" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-sm text-white" style="background-color: #588b8b;">Simpan Perubahan</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- DELETE MODAL -->
+<div class="modal fade text-start" id="deletePoliModal{{ $idx }}" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form action="{{ route('reports.rl35.destroy') }}" method="POST" class="modal-content">
+            @csrf
+            @method('DELETE')
+            <input type="hidden" name="month" value="{{ $month }}">
+            <input type="hidden" name="year" value="{{ $year }}">
+            <input type="hidden" name="poliklinik" value="{{ $p['poliklinik'] }}">
+
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title fs-6 fw-bold">Konfirmasi Hapus Data Poliklinik</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                Apakah Anda yakin ingin menghapus seluruh data kunjungan untuk <strong>{{ $p['poliklinik'] }}</strong> pada periode {{ DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }}? Total <strong>{{ number_format($p['total']) }}</strong> data kunjungan akan dihapus. Action ini tidak dapat dibatalkan.
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-sm btn-danger">Hapus Data</button>
+            </div>
+        </form>
+    </div>
+</div>
+@endforeach
 
 @include('reports.partials.export_modals')
 @endsection
