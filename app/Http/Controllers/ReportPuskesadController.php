@@ -15,6 +15,9 @@ class ReportPuskesadController extends Controller
     {
         $month = $request->input('month', 8);
         $year  = $request->input('year', 2026);
+        $poli  = $request->input('poli', 'SEMUA');
+
+        $polikliniks = RawVisit::distinct('poliklinik')->pluck('poliklinik')->filter()->sort()->values();
 
         $query = RawVisit::query();
         if ($month) {
@@ -22,6 +25,9 @@ class ReportPuskesadController extends Controller
         }
         if ($year) {
             $query->whereYear('tgl_berobat', $year);
+        }
+        if ($poli && $poli !== 'SEMUA') {
+            $query->where('poliklinik', $poli);
         }
 
         $allVisits = $query->get();
@@ -88,6 +94,8 @@ class ReportPuskesadController extends Controller
         return view('reports.puskesad', compact(
             'month',
             'year',
+            'poli',
+            'polikliniks',
             'reportData',
             'subTotals',
             'totalPengunjungAll',
@@ -99,8 +107,11 @@ class ReportPuskesadController extends Controller
     {
         $month = $request->input('month', 8);
         $year  = $request->input('year', 2026);
-        $filename = "Laporan_Rawat_Jalan_Dinas_Puskesad_{$month}_{$year}.xlsx";
+        $poli  = $request->input('poli', 'SEMUA');
 
-        \App\Services\ExcelReportExporter::exportFullOutput($month, $year, $filename);
+        $poliSlug = ($poli && $poli !== 'SEMUA') ? preg_replace('/[^A-Za-z0-9_\-]/', '_', $poli) : 'SEMUA';
+        $filename = "Laporan_Rawat_Jalan_Dinas_Puskesad_{$month}_{$year}_{$poliSlug}.xlsx";
+
+        \App\Services\ExcelReportExporter::exportFullOutput($month, $year, $filename, $poli);
     }
 }

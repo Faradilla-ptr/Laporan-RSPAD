@@ -15,6 +15,9 @@ class ReportRL35Controller extends Controller
     {
         $month = $request->input('month', 8);
         $year  = $request->input('year', 2026);
+        $poli  = $request->input('poli', 'SEMUA');
+
+        $polikliniks = RawVisit::distinct('poliklinik')->pluck('poliklinik')->filter()->sort()->values();
 
         $query = RawVisit::query();
         if ($month) {
@@ -22,6 +25,9 @@ class ReportRL35Controller extends Controller
         }
         if ($year) {
             $query->whereYear('tgl_berobat', $year);
+        }
+        if ($poli && $poli !== 'SEMUA') {
+            $query->where('poliklinik', $poli);
         }
 
         $visits = $query->get();
@@ -71,6 +77,8 @@ class ReportRL35Controller extends Controller
         return view('reports.rl35', compact(
             'month',
             'year',
+            'poli',
+            'polikliniks',
             'poliData',
             'totalKunjunganAll',
             'workDays',
@@ -82,8 +90,11 @@ class ReportRL35Controller extends Controller
     {
         $month = $request->input('month', 8);
         $year  = $request->input('year', 2026);
-        $filename = "Laporan_RL_3.5_RSPAD_{$month}_{$year}.xlsx";
+        $poli  = $request->input('poli', 'SEMUA');
 
-        \App\Services\ExcelReportExporter::exportFullOutput($month, $year, $filename);
+        $poliSlug = ($poli && $poli !== 'SEMUA') ? preg_replace('/[^A-Za-z0-9_\-]/', '_', $poli) : 'SEMUA';
+        $filename = "Laporan_RL_3.5_RSPAD_{$month}_{$year}_{$poliSlug}.xlsx";
+
+        \App\Services\ExcelReportExporter::exportFullOutput($month, $year, $filename, $poli);
     }
 }

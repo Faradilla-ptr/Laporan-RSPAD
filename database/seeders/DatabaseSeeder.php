@@ -44,9 +44,9 @@ class DatabaseSeeder extends Seeder
             ]
         );
 
-        // 2. Import Real XLS Sample Data if available
+        // 2. Import Real XLS Sample Data if available and table is empty
         $xlsPath = base_path('extracted/laporan-rspad/LAPORAN_KUNJUNGAN_PASIEN_1790146382.xls');
-        if (file_exists($xlsPath)) {
+        if (file_exists($xlsPath) && RawVisit::count() === 0) {
             $this->command->info("Seeding data from real XLS: {$xlsPath}");
             try {
                 $spreadsheet = IOFactory::load($xlsPath);
@@ -64,11 +64,12 @@ class DatabaseSeeder extends Seeder
                 $count = 0;
                 for ($row = 13; $row <= $highestRow; $row++) {
                     $noRm = trim((string)$sheet->getCell("B{$row}")->getValue());
-                    if (empty($noRm)) {
+                    $namaPasien = trim((string)$sheet->getCell("C{$row}")->getValue());
+
+                    if (empty($noRm) || strtolower($noRm) === 'no rm' || strtolower($namaPasien) === 'nama pasien') {
                         continue;
                     }
 
-                    $namaPasien = trim((string)$sheet->getCell("C{$row}")->getValue());
                     $tglLahir   = trim((string)$sheet->getCell("D{$row}")->getValue());
                     $umur       = trim((string)$sheet->getCell("E{$row}")->getValue());
                     $noTelp     = trim((string)$sheet->getCell("F{$row}")->getValue());
@@ -82,6 +83,7 @@ class DatabaseSeeder extends Seeder
                     $statusPasien = trim((string)$sheet->getCell("N{$row}")->getValue());
                     $jenisRawat   = trim((string)$sheet->getCell("O{$row}")->getValue());
                     $jenisPenjamin= trim((string)$sheet->getCell("P{$row}")->getValue());
+                    $kelompokRaw  = trim((string)$sheet->getCell("Q{$row}")->getValue());
                     $pangkat    = trim((string)$sheet->getCell("R{$row}")->getValue());
                     $nipNrpPasien = trim((string)$sheet->getCell("S{$row}")->getValue());
                     $gender     = trim((string)$sheet->getCell("T{$row}")->getValue());
@@ -97,7 +99,37 @@ class DatabaseSeeder extends Seeder
                     $deskIcdSek  = trim((string)$sheet->getCell("AD{$row}")->getValue());
                     $statusRegis = trim((string)$sheet->getCell("AE{$row}")->getValue());
 
-                    // Format date Y-m-d
+                    // Derive kelompok if blank
+                    if (empty($kelompokRaw)) {
+                        $p   = strtoupper($jenisPenjamin);
+                        $pa  = strtoupper($pangkat);
+                        $ins = strtoupper($instansi);
+                        $kat = strtoupper($kategori);
+                        $kes = strtoupper($kesatuan);
+
+                        if (str_contains($p, 'PBI')) {
+                            $kelompokRaw = 'BPJS PBI';
+                        } elseif (str_contains($p, 'MANDIRI') || str_contains($p, 'SWASTA')) {
+                            $kelompokRaw = 'BPJS MANDIRI / SWASTA';
+                        } elseif (str_contains($p, 'MILITER') || str_contains($p, 'DINAS') || str_contains($kat, 'MILITER') || !empty($pa)) {
+                            if (str_contains($kat, 'KELUARGA') || str_contains($p, 'KELUARGA')) {
+                                $kelompokRaw = 'KELUARGA MILITER';
+                            } else {
+                                $kelompokRaw = 'MILITER TNI AD';
+                            }
+                        } elseif (str_contains($p, 'PNS') || str_contains($kat, 'PNS') || str_contains($ins, 'KEMHAN') || str_contains($ins, 'TNI')) {
+                            if (str_contains($kat, 'KELUARGA') || str_contains($p, 'KELUARGA')) {
+                                $kelompokRaw = 'KELUARGA PNS';
+                            } else {
+                                $kelompokRaw = 'PNS KEMHAN/TNI';
+                            }
+                        } elseif (str_contains($p, 'PURNA') || str_contains($kat, 'PURNA')) {
+                            $kelompokRaw = 'PURNAWIRAWAN';
+                        } else {
+                            $kelompokRaw = 'UMUM / TUNAI';
+                        }
+                    }
+
                     $tglBerobat = '2026-08-01';
                     if (!empty($tglBerobatRaw)) {
                         $tglBerobat = date('Y-m-d', strtotime($tglBerobatRaw));
@@ -120,6 +152,7 @@ class DatabaseSeeder extends Seeder
                         'status_pasien' => $statusPasien ?: 'Pasien Lama',
                         'jenis_rawat' => $jenisRawat ?: 'WATLAN',
                         'jenis_penjamin' => $jenisPenjamin ?: 'BPJS DINAS',
+                        'kelompok' => $kelompokRaw,
                         'pangkat' => $pangkat,
                         'nip_nrp_pasien' => $nipNrpPasien,
                         'gender' => $gender ?: 'L',

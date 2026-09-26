@@ -11,9 +11,12 @@
             <span class="text-muted small">Laporan Status Pasien & Golongan Personel ke Pusat Kesehatan Angkatan Darat</span>
         </div>
         <div class="d-flex gap-2">
-            <a href="{{ route('reports.puskesad.export', ['month' => $month, 'year' => $year]) }}" class="btn btn-sm btn-outline-rspad d-flex align-items-center gap-1">
+            <a href="{{ route('reports.puskesad.export', ['month' => $month, 'year' => $year, 'poli' => $poli ?? 'SEMUA']) }}" class="btn btn-sm btn-outline-rspad d-flex align-items-center gap-1">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
                 Export Excel (.xlsx)
+            </a>
+            <a href="{{ route('reports.export-zip', ['month' => $month, 'year' => $year]) }}" class="btn btn-sm btn-rspad-primary d-flex align-items-center gap-1" style="background-color: #2D6A4F;">
+                📦 Batch ZIP (Semua Poli)
             </a>
             <button onclick="window.print()" class="btn btn-sm btn-rspad-primary d-flex align-items-center gap-1">
                 <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
@@ -39,6 +42,17 @@
                 @foreach(range(2024, 2030) as $y)
                     <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>{{ $y }}</option>
                 @endforeach
+            </select>
+        </div>
+        <div class="col-md-4">
+            <label class="form-label fw-semibold small text-muted mb-1">Poliklinik</label>
+            <select name="poli" class="form-select form-select-sm">
+                <option value="SEMUA" {{ ($poli ?? 'SEMUA') == 'SEMUA' ? 'selected' : '' }}>-- SEMUA POLIKLINIK --</option>
+                @if(isset($polikliniks))
+                    @foreach($polikliniks as $pName)
+                        <option value="{{ $pName }}" {{ ($poli ?? '') == $pName ? 'selected' : '' }}>{{ $pName }}</option>
+                    @endforeach
+                @endif
             </select>
         </div>
         <div class="col-md-2 mt-auto">

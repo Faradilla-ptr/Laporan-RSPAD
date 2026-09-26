@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Masuk Akun')
+@section('title', 'Pendaftaran Akun Baru')
 
 @section('content')
 <style>
@@ -46,14 +46,14 @@
         box-shadow: 0 20px 40px rgba(0, 0, 0, 0.25);
         overflow: hidden;
         width: 100%;
-        max-width: 960px;
+        max-width: 980px;
         display: flex;
         position: relative;
         z-index: 10;
         border: 1px solid rgba(255, 255, 255, 0.2);
     }
 
-    /* Left Hero Banner (Desktop) */
+    /* Left Hero Banner */
     .auth-hero-banner {
         flex: 1;
         background: linear-gradient(145deg, #2A6A2A 0%, #1E561E 100%);
@@ -64,14 +64,6 @@
         justify-content: space-between;
         position: relative;
         overflow: hidden;
-    }
-
-    .auth-hero-banner::before {
-        content: '';
-        position: absolute;
-        top: 0; right: 0; bottom: 0; left: 0;
-        background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.08), transparent 60%);
-        pointer-events: none;
     }
 
     .brand-hero-logo {
@@ -117,8 +109,8 @@
 
     /* Right Form Area */
     .auth-form-area {
-        width: 480px;
-        padding: 3rem 2.5rem;
+        width: 520px;
+        padding: 2.5rem 2.5rem;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -131,18 +123,18 @@
         }
         .auth-form-area {
             width: 100%;
-            padding: 2.5rem 1.75rem;
+            padding: 2rem 1.5rem;
         }
         .auth-card-container {
-            max-width: 460px;
+            max-width: 500px;
         }
     }
 
     .form-control-rspad {
         border: 1.5px solid #CBD5E1;
         border-radius: 10px;
-        padding: 0.7rem 0.9rem;
-        font-size: 0.9rem;
+        padding: 0.65rem 0.9rem;
+        font-size: 0.88rem;
         transition: all 0.2s ease;
     }
 
@@ -189,31 +181,6 @@
         color: #ffffff;
         transform: translateY(-1px);
     }
-
-    .demo-credentials-box {
-        background: #F8FAFC;
-        border: 1px solid #E2E8F0;
-        border-radius: 10px;
-        padding: 1rem;
-        font-size: 0.8rem;
-    }
-
-    .demo-chip {
-        display: inline-block;
-        background: #E2E8F0;
-        color: #334155;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border: none;
-    }
-
-    .demo-chip:hover {
-        background: #3B8A3B;
-        color: #ffffff;
-    }
 </style>
 
 <div class="auth-page-wrapper">
@@ -232,25 +199,25 @@
 
                 <div class="mb-4">
                     <span class="hero-badge-pill mb-3">
-                        <i class="bi bi-shield-check"></i> Portal Pelaporan Resmi
+                        <i class="bi bi-person-plus-fill"></i> Pendaftaran Akun Pengguna
                     </span>
-                    <h4 class="fw-bold text-white lh-base mb-2">Sistem Rekapitulasi Pelaporan Rawat Jalan</h4>
-                    <p class="text-white-50 small mb-0">Integrasi data kunjungan pasien rawat jalan SIMRS RSPAD Gatot Soebroto dan Laporan Puskesad.</p>
+                    <h4 class="fw-bold text-white lh-base mb-2">Registrasi Petugas & Pengelola Pelaporan</h4>
+                    <p class="text-white-50 small mb-0">Daftarkan akun baru untuk mengelola dan memantau pelaporan kunjungan pasien rawat jalan.</p>
                 </div>
             </div>
 
             <div class="mt-4">
                 <div class="feature-list-item">
-                    <div class="feature-icon-box"><i class="bi bi-file-earmark-excel-fill"></i></div>
-                    <span>Ekspor Excel 31 Kolom Sesuai Standardisasi Form</span>
+                    <div class="feature-icon-box"><i class="bi bi-person-badge-fill"></i></div>
+                    <span>Peran Petugas Input, Admin, atau Pimpinan</span>
                 </div>
                 <div class="feature-list-item">
-                    <div class="feature-icon-box"><i class="bi bi-pie-chart-fill"></i></div>
-                    <span>Klasifikasi Otomatis Kelompok TNI AD & Umum</span>
+                    <div class="feature-icon-box"><i class="bi bi-shield-lock-fill"></i></div>
+                    <span>Enkripsi Kata Sandi Standar Keamanan RSPAD</span>
                 </div>
                 <div class="feature-list-item">
-                    <div class="feature-icon-box"><i class="bi bi-lock-fill"></i></div>
-                    <span>Akses Berbasis Peran (Petugas, Admin, Pimpinan)</span>
+                    <div class="feature-icon-box"><i class="bi bi-speedometer2"></i></div>
+                    <span>Akses Langsung ke Dashboard & Fitur Ekspor</span>
                 </div>
             </div>
 
@@ -263,22 +230,16 @@
         <div class="auth-form-area">
 
             <!-- Mobile Logo Header -->
-            <div class="d-lg-none text-center mb-4">
-                <img src="{{ asset('images/logo-rspad.png') }}" alt="RSPAD Logo" style="height: 50px;">
+            <div class="d-lg-none text-center mb-3">
+                <img src="{{ asset('images/logo-rspad.png') }}" alt="RSPAD Logo" style="height: 46px;">
                 <h5 class="fw-bold text-success mb-0 mt-2">RSPAD GATOT SOEBROTO</h5>
-                <p class="text-muted small">Sistem Pelaporan Rawat Jalan</p>
+                <p class="text-muted small">Registrasi Akun Baru</p>
             </div>
 
-            <div class="mb-4">
-                <h4 class="fw-bold text-dark mb-1">Masuk Akun</h4>
-                <p class="text-muted small">Silakan masukkan email dan kata sandi Anda.</p>
+            <div class="mb-3">
+                <h4 class="fw-bold text-dark mb-1">Daftar Akun Baru</h4>
+                <p class="text-muted small mb-0">Lengkapi formulir di bawah ini untuk membuat akun baru.</p>
             </div>
-
-            @if(session('success'))
-                <div class="alert alert-success border-0 shadow-sm small mb-3 py-2 px-3" style="background-color: #E8F5E9; color: #2A6A2A;">
-                    <i class="bi bi-check-circle-fill me-1"></i> {{ session('success') }}
-                </div>
-            @endif
 
             @if($errors->any())
                 <div class="alert alert-danger border-0 shadow-sm small mb-3 py-2 px-3">
@@ -286,28 +247,61 @@
                 </div>
             @endif
 
-            <form action="{{ route('login.post') }}" method="POST">
+            <form action="{{ route('register.post') }}" method="POST">
                 @csrf
 
+                <!-- Nama Lengkap -->
+                <div class="mb-2.5">
+                    <label for="name" class="form-label fw-semibold small text-secondary mb-1">Nama Lengkap</label>
+                    <div class="position-relative">
+                        <input type="text" class="form-control form-control-rspad ps-5 @error('name') is-invalid @enderror" 
+                               id="name" name="name" value="{{ old('name') }}" 
+                               placeholder="Contoh: dr. Fara Kusuma" required autofocus>
+                        <i class="bi bi-person text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
+                    </div>
+                </div>
+
                 <!-- Email Input -->
-                <div class="mb-3">
-                    <label for="email" class="form-label fw-semibold small text-secondary">Alamat Email</label>
+                <div class="mb-2.5">
+                    <label for="email" class="form-label fw-semibold small text-secondary mb-1">Alamat Email</label>
                     <div class="position-relative">
                         <input type="email" class="form-control form-control-rspad ps-5 @error('email') is-invalid @enderror" 
                                id="email" name="email" value="{{ old('email') }}" 
-                               placeholder="nama@rspad.go.id" required autofocus>
+                               placeholder="nama@rspad.go.id" required>
                         <i class="bi bi-envelope text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
                     </div>
                 </div>
 
-                <!-- Password Input with Eye Toggle Icon -->
-                <div class="mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <label for="password" class="form-label fw-semibold small text-secondary mb-0">Kata Sandi</label>
+                <!-- Peran / Jabatan & NIP/NRP -->
+                <div class="row g-2 mb-2.5">
+                    <div class="col-md-6">
+                        <label for="role" class="form-label fw-semibold small text-secondary mb-1">Peran Akses</label>
+                        <div class="position-relative">
+                            <select class="form-select form-control-rspad ps-5 @error('role') is-invalid @enderror" id="role" name="role" required>
+                                <option value="petugas" {{ old('role') === 'petugas' ? 'selected' : '' }}>Petugas Input</option>
+                                <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Admin Sistem</option>
+                                <option value="pimpinan" {{ old('role') === 'pimpinan' ? 'selected' : '' }}>Pimpinan / Pejabat</option>
+                            </select>
+                            <i class="bi bi-person-badge text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
+                        </div>
                     </div>
+                    <div class="col-md-6">
+                        <label for="nip_nrp" class="form-label fw-semibold small text-secondary mb-1">NIP / NRP <span class="fw-normal text-muted">(Opsional)</span></label>
+                        <div class="position-relative">
+                            <input type="text" class="form-control form-control-rspad ps-5 @error('nip_nrp') is-invalid @enderror" 
+                                   id="nip_nrp" name="nip_nrp" value="{{ old('nip_nrp') }}" 
+                                   placeholder="199203152018012002">
+                            <i class="bi bi-card-heading text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Password Input with Eye Toggle Icon -->
+                <div class="mb-2.5">
+                    <label for="password" class="form-label fw-semibold small text-secondary mb-1">Kata Sandi</label>
                     <div class="position-relative">
                         <input type="password" class="form-control form-control-rspad ps-5 pe-5 @error('password') is-invalid @enderror" 
-                               id="password" name="password" placeholder="••••••••" required>
+                               id="password" name="password" placeholder="Minimal 6 karakter" required>
                         <i class="bi bi-lock text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
                         <button type="button" class="password-toggle-btn" onclick="togglePassword('password', this)" title="Tampilkan/Sembunyikan Kata Sandi">
                             <i class="bi bi-eye-slash fs-6"></i>
@@ -315,40 +309,29 @@
                     </div>
                 </div>
 
-                <!-- Remember Me -->
-                <div class="d-flex justify-content-between align-items-center mb-4">
-                    <div class="form-check">
-                        <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                        <label class="form-check-label small text-muted" for="remember">Ingat Sesi Login</label>
+                <!-- Konfirmasi Password with Eye Toggle Icon -->
+                <div class="mb-3.5">
+                    <label for="password_confirmation" class="form-label fw-semibold small text-secondary mb-1">Konfirmasi Kata Sandi</label>
+                    <div class="position-relative">
+                        <input type="password" class="form-control form-control-rspad ps-5 pe-5" 
+                               id="password_confirmation" name="password_confirmation" placeholder="Ulangi kata sandi Anda" required>
+                        <i class="bi bi-shield-lock text-muted position-absolute start-0 top-50 translate-middle-y ms-3"></i>
+                        <button type="button" class="password-toggle-btn" onclick="togglePassword('password_confirmation', this)" title="Tampilkan/Sembunyikan Kata Sandi">
+                            <i class="bi bi-eye-slash fs-6"></i>
+                        </button>
                     </div>
                 </div>
 
                 <!-- Submit Button -->
-                <button type="submit" class="btn btn-rspad-auth w-100 mb-3">
-                    <i class="bi bi-box-arrow-in-right me-1"></i> Masuk Akun
+                <button type="submit" class="btn btn-rspad-auth w-100 mb-3 mt-2">
+                    <i class="bi bi-person-check-fill me-1"></i> Daftar Akun Baru
                 </button>
             </form>
 
-            <!-- Register Link -->
-            <div class="text-center mb-4">
-                <span class="text-muted small">Belum memiliki akun? </span>
-                <a href="{{ route('register') }}" class="fw-semibold text-decoration-none" style="color: #2A6A2A;">Daftar Akun Baru</a>
-            </div>
-
-            <!-- Quick Demo Credentials Selector -->
-            <div class="demo-credentials-box">
-                <div class="fw-bold text-dark mb-2 d-flex align-items-center justify-content-between">
-                    <span><i class="bi bi-key-fill text-warning me-1"></i> Akun Akses Uji Coba:</span>
-                    <span class="text-muted extra-small">Klik untuk isi otomatis</span>
-                </div>
-                <div class="d-flex flex-wrap gap-1 mb-2">
-                    <button type="button" class="demo-chip" onclick="fillDemo('petugas@rspad.go.id', 'password123')">Petugas</button>
-                    <button type="button" class="demo-chip" onclick="fillDemo('admin@rspad.go.id', 'password123')">Admin</button>
-                    <button type="button" class="demo-chip" onclick="fillDemo('pimpinan@rspad.go.id', 'password123')">Pimpinan</button>
-                </div>
-                <div class="text-muted" style="font-size: 0.75rem;">
-                    Password default: <code class="bg-white px-1 border rounded">password123</code>
-                </div>
+            <!-- Login Link -->
+            <div class="text-center">
+                <span class="text-muted small">Sudah memiliki akun? </span>
+                <a href="{{ route('login') }}" class="fw-semibold text-decoration-none" style="color: #2A6A2A;">Masuk di Sini</a>
             </div>
 
         </div>
@@ -371,11 +354,6 @@
             icon.classList.remove('bi-eye');
             icon.classList.add('bi-eye-slash');
         }
-    }
-
-    function fillDemo(email, password) {
-        document.getElementById('email').value = email;
-        document.getElementById('password').value = password;
     }
 </script>
 @endsection

@@ -23,45 +23,33 @@ class DashboardController extends Controller
         }
 
         // Metrics
-        $totalKunjungan = (clone $query)->count();
+        $totalKunjungan  = (clone $query)->count();
         $totalPengunjung = (clone $query)->distinct('no_rm')->count('no_rm');
         $pengunjungBaru  = (clone $query)->where('status_pasien', 'Pasien Baru')->distinct('no_rm')->count('no_rm');
         $pengunjungLama  = (clone $query)->where('status_pasien', 'Pasien Lama')->distinct('no_rm')->count('no_rm');
 
-        // Poliklinik Breakdown
+        // Total TNI AD & Tanggungan vs General / BPJS
+        $totalMiliterTni = (clone $query)->whereIn('kelompok', ['MILITER TNI AD', 'KELUARGA MILITER', 'PNS KEMHAN/TNI', 'KELUARGA PNS', 'PURNAWIRAWAN'])->count();
+        $totalBpjsUmum   = (clone $query)->whereIn('kelompok', ['BPJS PBI', 'BPJS MANDIRI / SWASTA', 'UMUM / TUNAI'])->count();
+
+        // Kelompok Breakdown (For Pie / Doughnut Chart)
+        $kelompokBreakdown = (clone $query)
+            ->select('kelompok', DB::raw('count(*) as total_kunjungan'), DB::raw('count(distinct no_rm) as total_pengunjung'))
+            ->groupBy('kelompok')
+            ->orderByDesc('total_kunjungan')
+            ->get();
+
+        // Poliklinik Top 10 Breakdown (For Bar Chart)
         $poliBreakdown = (clone $query)
             ->select('poliklinik', DB::raw('count(*) as total'))
             ->groupBy('poliklinik')
             ->orderByDesc('total')
-            ->limit(7)
+            ->limit(10)
             ->get();
 
-        // Status Dinas Puskesad Breakdown
-        $allVisits = (clone $query)->get();
-        $statusPuskesadStats = [];
-        $totalPengunjungAll = max(1, $totalPengunjung);
-        $totalKunjunganAll  = max(1, $totalKunjungan);
-
-        // Group visits by StatusPuskesad
-        $groupedByPuskesad = $allVisits->groupBy(function ($item) {
-            return $item->status_puskesad;
-        });
-
-        foreach ($groupedByPuskesad as $statusName => $visits) {
-            $kunjunganCount = $visits->count();
-            $pengunjungCount = $visits->pluck('no_rm')->unique()->count();
-
-            $statusPuskesadStats[$statusName] = [
-                'pengunjung' => $pengunjungCount,
-                'pengunjung_pct' => round(($pengunjungCount / $totalPengunjungAll) * 100, 2),
-                'kunjungan' => $kunjunganCount,
-                'kunjungan_pct' => round(($kunjunganCount / $totalKunjunganAll) * 100, 2),
-            ];
-        }
-
-        // Daily trend for chart
+        // Daily Trend (For Line Chart)
         $dailyTrend = (clone $query)
-            ->select(DB::raw('DATE(tgl_berobat) as date'), DB::raw('count(*) as total'))
+            ->select(DB::raw('DATE(tgl_berobat) as date'), DB::raw('count(*) as total_kunjungan'), DB::raw('count(distinct no_rm) as total_pengunjung'))
             ->groupBy('date')
             ->orderBy('date')
             ->get();
@@ -75,8 +63,10 @@ class DashboardController extends Controller
             'totalPengunjung',
             'pengunjungBaru',
             'pengunjungLama',
+            'totalMiliterTni',
+            'totalBpjsUmum',
+            'kelompokBreakdown',
             'poliBreakdown',
-            'statusPuskesadStats',
             'dailyTrend',
             'recentImports'
         ));

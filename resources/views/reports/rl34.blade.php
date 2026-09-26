@@ -3,29 +3,22 @@
 @section('title', 'Laporan RL 3.4 - Rekapitulasi Pengunjung')
 
 @section('content')
-<!-- SIRS / SATUSEHAT Tabs & Header -->
+<!-- Header Title -->
 <div class="d-flex align-items-center justify-content-between mb-3">
-    <div class="d-flex align-items-center gap-3">
-        <h4 class="fw-bold mb-0" style="color: var(--palette-5);">RL 3.4 - Pengunjung</h4>
-        <div class="nav nav-pills small" style="background-color: #e2e8f0; padding: 3px; border-radius: 6px;">
-            <button class="nav-link active py-1 px-3 fw-semibold" style="background-color: #ffffff; color: var(--palette-5); border-radius: 5px;">📄 SIRS</button>
-            <button class="nav-link py-1 px-3 text-muted" style="border-radius: 5px;">🌐 SATUSEHAT</button>
-        </div>
-    </div>
+    <h4 class="fw-bold mb-0" style="color: var(--palette-5);">RL 3.4 - Pengunjung</h4>
 </div>
 
-<!-- Header Card & Filter Bar (Matching output (1).jpeg) -->
+<!-- Header Card & Filter Bar -->
 <div class="card-panel p-4 mb-4">
     <div class="d-flex flex-wrap align-items-center gap-2 mb-3">
         <button class="btn btn-sm btn-rspad-primary px-3 fw-bold" style="background-color: #588b8b;">+</button>
         <button class="btn btn-sm text-white fw-medium px-3" style="background-color: #588b8b;" type="button" data-bs-toggle="collapse" data-bs-target="#filterCollapse">Filter</button>
-        <a href="{{ route('reports.rl34.export', ['month' => $month, 'year' => $year]) }}" class="btn btn-sm text-white fw-medium px-3" style="background-color: #588b8b;">
-            Download
+        <a href="{{ route('reports.rl34.export', ['month' => $month, 'year' => $year, 'poli' => $poli ?? 'SEMUA']) }}" class="btn btn-sm text-white fw-medium px-3" style="background-color: #588b8b;">
+            <i class="fas me-1">📊</i> Download Excel
         </a>
-    </div>
-
-    <div class="text-muted small mb-3">
-        <em>filtered by nama: RS Umum PAD Gatot Soebroto, periode: {{ $year }}-{{ $month }}</em>
+        <a href="{{ route('reports.export-zip', ['month' => $month, 'year' => $year]) }}" class="btn btn-sm text-white fw-medium px-3" style="background-color: #2D6A4F;">
+            <i class="fas me-1">📦</i> Download Batch ZIP (Semua Poli)
+        </a>
     </div>
 
     <!-- Filter Form Collapse -->
@@ -47,6 +40,17 @@
                     @foreach(range(2024, 2030) as $y)
                         <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>{{ $y }}</option>
                     @endforeach
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label fw-semibold small text-muted mb-1">Poliklinik</label>
+                <select name="poli" class="form-select form-select-sm">
+                    <option value="SEMUA" {{ ($poli ?? 'SEMUA') == 'SEMUA' ? 'selected' : '' }}>-- SEMUA POLIKLINIK --</option>
+                    @if(isset($polikliniks))
+                        @foreach($polikliniks as $pName)
+                            <option value="{{ $pName }}" {{ ($poli ?? '') == $pName ? 'selected' : '' }}>{{ $pName }}</option>
+                        @endforeach
+                    @endif
                 </select>
             </div>
             <div class="col-md-2 mt-auto">

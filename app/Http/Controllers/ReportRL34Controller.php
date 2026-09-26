@@ -16,6 +16,9 @@ class ReportRL34Controller extends Controller
     {
         $month = $request->input('month', 8);
         $year  = $request->input('year', 2026);
+        $poli  = $request->input('poli', 'SEMUA');
+
+        $polikliniks = RawVisit::distinct('poliklinik')->pluck('poliklinik')->filter()->sort()->values();
 
         $query = RawVisit::query();
         if ($month) {
@@ -24,9 +27,11 @@ class ReportRL34Controller extends Controller
         if ($year) {
             $query->whereYear('tgl_berobat', $year);
         }
+        if ($poli && $poli !== 'SEMUA') {
+            $query->where('poliklinik', $poli);
+        }
 
         // Deduplication Logic for RL 3.4
-        // 1 No RM unique counted 1 time
         $pengunjungBaru = (clone $query)->where('status_pasien', 'Pasien Baru')->distinct('no_rm')->count('no_rm');
         $pengunjungLama = (clone $query)->where('status_pasien', 'Pasien Lama')->distinct('no_rm')->count('no_rm');
         $totalPengunjung = $pengunjungBaru + $pengunjungLama;
@@ -35,6 +40,7 @@ class ReportRL34Controller extends Controller
         $patients = RawVisit::query()
             ->when($month, fn($q) => $q->whereMonth('tgl_berobat', $month))
             ->when($year, fn($q) => $q->whereYear('tgl_berobat', $year))
+            ->when($poli && $poli !== 'SEMUA', fn($q) => $q->where('poliklinik', $poli))
             ->select(
                 'no_rm',
                 DB::raw('MAX(nama_pasien) as nama_pasien'),
@@ -50,6 +56,8 @@ class ReportRL34Controller extends Controller
         return view('reports.rl34', compact(
             'month',
             'year',
+            'poli',
+            'polikliniks',
             'pengunjungBaru',
             'pengunjungLama',
             'totalPengunjung',
@@ -61,8 +69,19 @@ class ReportRL34Controller extends Controller
     {
         $month = $request->input('month', 8);
         $year  = $request->input('year', 2026);
-        $filename = "Laporan_RL_3.4_RSPAD_{$month}_{$year}.xlsx";
+        $poli  = $request->input('poli', 'SEMUA');
+        
+        $poliSlug = ($poli && $poli !== 'SEMUA') ? preg_replace('/[^A-Za-z0-9_\-]/', '_', $poli) : 'SEMUA';
+        $filename = "Laporan_RL_3.4_RSPAD_{$month}_{$year}_{$poliSlug}.xlsx";
 
-        \App\Services\ExcelReportExporter::exportFullOutput($month, $year, $filename);
+        \App\Services\ExcelReportExporter::exportFullOutput($month, $year, $filename, $poli);
+    }
+
+    public function exportZip(Request $request)
+    {
+        $month = $request->input('month', 8);
+        $year  = $request->input('year', 2026);
+
+        \App\Services\ExcelReportExporter::exportZipForMonth($month, $year);
     }
 }

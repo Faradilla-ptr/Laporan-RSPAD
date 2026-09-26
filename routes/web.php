@@ -11,6 +11,8 @@ use App\Http\Controllers\ReportPuskesadController;
 // Auth Routes
 Route::get('/login', [AuthController::class, 'showLogin'])->name('login');
 Route::post('/login', [AuthController::class, 'login'])->name('login.post');
+Route::get('/register', [AuthController::class, 'showRegister'])->name('register');
+Route::post('/register', [AuthController::class, 'register'])->name('register.post');
 Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Protected Routes
@@ -36,4 +38,7 @@ Route::middleware(['auth'])->group(function () {
     // Puskesad Report
     Route::get('/reports/puskesad', [ReportPuskesadController::class, 'index'])->name('reports.puskesad');
     Route::get('/reports/puskesad/export', [ReportPuskesadController::class, 'exportExcel'])->name('reports.puskesad.export');
+
+    // Batch Zip Export (All Poli Excels)
+    Route::get('/reports/export-zip', [ReportRL34Controller::class, 'exportZip'])->name('reports.export-zip');
 });

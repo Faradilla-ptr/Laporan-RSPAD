@@ -4,14 +4,27 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>@yield('title', 'Sistem Rekapitulasi Pelaporan') | RSPAD Gatot Soebroto</title>
+    <!-- Favicon / Tab Logo RSPAD -->
+    <link rel="icon" type="image/png" href="{{ asset('images/logo-rspad.png') }}">
+    <link rel="shortcut icon" type="image/png" href="{{ asset('images/logo-rspad.png') }}">
+    <link rel="apple-touch-icon" href="{{ asset('images/logo-rspad.png') }}">
     <!-- Inter Font -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <!-- Bootstrap 5 CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
     <!-- Chart.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    @guest
+    <style>
+        .app-main { margin-left: 0 !important; }
+        .app-main > main { padding: 0 !important; }
+    </style>
+    @endguest
 
     <style>
         :root {
