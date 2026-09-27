@@ -6,6 +6,7 @@ use App\Http\Controllers\ImportController;
 use App\Http\Controllers\ReportPuskesadController;
 use App\Http\Controllers\ReportRL34Controller;
 use App\Http\Controllers\ReportRL35Controller;
+use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Auth Routes with Brute Force Protection (Throttle 5 attempts per minute)
@@ -77,4 +78,11 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/reports/puskesad/export', [ReportPuskesadController::class, 'exportExcel'])->name('reports.puskesad.export');
         });
     }
+
+    // Admin Only User Validation Routes
+    Route::prefix('admin')->name('admin.')->group(function () {
+        Route::get('/users', [UserController::class, 'index'])->name('users.index');
+        Route::post('/users/{user}/approve', [UserController::class, 'approve'])->name('users.approve');
+        Route::delete('/users/{user}/reject', [UserController::class, 'reject'])->name('users.reject');
+    });
 });

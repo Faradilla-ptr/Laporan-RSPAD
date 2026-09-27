@@ -596,6 +596,23 @@
                     <span>Import SIMRS</span>
                 </a>
 
+                @if(Auth::check() && Auth::user()->role === 'admin')
+                @php
+                    $pendingCount = \App\Models\User::where('is_approved', false)->count();
+                @endphp
+                <a href="{{ route('admin.users.index') }}" class="sidebar-link {{ request()->routeIs('admin.users.*') ? 'active' : '' }}" title="Validasi Akun Petugas">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <polyline points="17 11 19 13 23 9"></polyline>
+                    </svg>
+                    <span>Validasi Akun Petugas</span>
+                    @if($pendingCount > 0)
+                        <span class="badge bg-warning text-dark ms-auto" style="font-size: 0.7rem;">{{ $pendingCount }}</span>
+                    @endif
+                </a>
+                @endif
+
                 <div class="nav-category mt-3">Laporan Rekapitulasi</div>
 
                 <a href="{{ route($rolePrefix . '.reports.rl34') }}" class="sidebar-link {{ request()->routeIs('*.reports.rl34') || request()->routeIs('reports.rl34') ? 'active' : '' }}" title="RL 3.4 (Pengunjung)">

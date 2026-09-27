@@ -20,6 +20,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Admin Pelaporan RSPAD',
                 'password' => Hash::make('password123'),
                 'role' => 'admin',
+                'is_approved' => true,
                 'nip_nrp' => '198501012010121001',
             ]
         );
@@ -30,6 +31,7 @@ class DatabaseSeeder extends Seeder
                 'name' => 'Petugas Pelaporan (Fara)',
                 'password' => Hash::make('password123'),
                 'role' => 'petugas',
+                'is_approved' => true,
                 'nip_nrp' => '199203152018012002',
             ]
         );

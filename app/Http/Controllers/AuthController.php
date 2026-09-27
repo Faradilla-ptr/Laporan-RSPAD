@@ -30,12 +30,24 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($credentials, $request->boolean('remember'))) {
+            $user = Auth::user();
+
+            if (! $user->is_approved && $user->role !== 'admin') {
+                Auth::logout();
+                $request->session()->invalidate();
+                $request->session()->regenerateToken();
+
+                return back()->withErrors([
+                    'email' => 'Akun Anda (Petugas) belum disetujui/disahkan oleh Admin (Kaur). Silakan hubungi Admin.',
+                ])->with('error', 'Akun Anda belum disetujui oleh Admin (Kaur). Silakan hubungi Admin untuk validasi.')->onlyInput('email');
+            }
+
             $request->session()->regenerate();
 
-            $role = Auth::user()->role === 'admin' ? 'admin' : 'petugas';
+            $role = $user->role === 'admin' ? 'admin' : 'petugas';
 
             return redirect()->intended(route("{$role}.dashboard"))
-                ->with('success', 'Selamat datang kembali, '.Auth::user()->name);
+                ->with('success', 'Selamat datang kembali, '.$user->name);
         }
 
         return back()->withErrors([
@@ -70,19 +82,25 @@ class AuthController extends Controller
             'role.required' => 'Peran/jabatan wajib dipilih.',
         ]);
 
+        $isApproved = ($validated['role'] === 'admin');
+
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
             'password' => Hash::make($validated['password']),
             'role' => $validated['role'],
+            'is_approved' => $isApproved,
             'nip_nrp' => $validated['nip_nrp'] ?? null,
         ]);
 
+        if (! $isApproved) {
+            return redirect()->route('login')
+                ->with('success', 'Pendaftaran berhasil! Akun Petugas Anda membutuhkan persetujuan/validasi dari Admin (Kaur) sebelum dapat digunakan untuk login.');
+        }
+
         Auth::login($user);
 
-        $role = $user->role === 'admin' ? 'admin' : 'petugas';
-
-        return redirect()->route("{$role}.dashboard")
+        return redirect()->route('admin.dashboard')
             ->with('success', 'Registrasi berhasil! Selamat datang di Sistem Informasi Pelaporan RSPAD Gatot Soebroto.');
     }
 

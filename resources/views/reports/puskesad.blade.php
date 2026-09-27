@@ -26,9 +26,9 @@
         <div class="col-md-3">
             <label class="form-label fw-semibold small text-muted mb-1">Bulan Periode</label>
             <select name="month" class="form-select form-select-sm">
-                @foreach(range(1, 12) as $m)
-                    <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>
-                        {{ DateTime::createFromFormat('!m', $m)->format('F') }}
+                @foreach($availableMonths as $mNum => $mName)
+                    <option value="{{ $mNum }}" {{ $month == (string)$mNum ? 'selected' : '' }}>
+                        {{ $mName }}
                     </option>
                 @endforeach
             </select>
@@ -36,9 +36,16 @@
         <div class="col-md-3">
             <label class="form-label fw-semibold small text-muted mb-1">Tahun Periode</label>
             <select name="year" class="form-select form-select-sm">
-                @foreach(range(2024, 2030) as $y)
-                    <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>{{ $y }}</option>
-                @endforeach
+                <option value="SEMUA" {{ $year == 'SEMUA' ? 'selected' : '' }}>-- SEMUA TAHUN --</option>
+                @if(isset($dbYears) && count($dbYears) > 0)
+                    @foreach($dbYears as $y)
+                        <option value="{{ $y }}" {{ $year == (string)$y ? 'selected' : '' }}>{{ $y }}</option>
+                    @endforeach
+                @else
+                    @foreach(range(2024, 2030) as $y)
+                        <option value="{{ $y }}" {{ $year == (string)$y ? 'selected' : '' }}>{{ $y }}</option>
+                    @endforeach
+                @endif
             </select>
         </div>
         <div class="col-md-4">
@@ -64,7 +71,7 @@
 <div class="card-panel p-4 mb-4">
     <div class="table-responsive">
         <table class="table table-clean table-bordered table-hover text-nowrap">
-            <thead class="text-center">
+            <thead class="text-center text-white" style="background-color: #23422e;">
                 <tr>
                     <th rowspan="2" style="width: 50px;">NO</th>
                     <th rowspan="2">STATUS PASIEN / GOLONGAN PERSONEL</th>
@@ -81,8 +88,8 @@
             <tbody>
                 @foreach($reportData as $groupName => $items)
                 <!-- Group Header -->
-                <tr style="background-color: rgba(93, 170, 93, 0.12);" class="fw-bold">
-                    <td colspan="6" class="text-uppercase" style="color: var(--palette-5);">
+                <tr class="fw-bold bg-white">
+                    <td colspan="6" class="text-uppercase text-dark ps-3 py-2" style="font-size: 0.95rem;">
                         {{ $groupName }}
                     </td>
                 </tr>
@@ -91,30 +98,30 @@
                 <tr>
                     <td></td>
                     <td class="ps-4 fw-medium text-dark">{{ $label }}</td>
-                    <td class="text-center">{{ number_format($data['pengunjung']) }}</td>
-                    <td class="text-center text-muted">{{ $data['pengunjung_pct'] }}%</td>
-                    <td class="text-center fw-semibold" style="color: var(--palette-5);">{{ number_format($data['kunjungan']) }}</td>
-                    <td class="text-center text-muted">{{ $data['kunjungan_pct'] }}%</td>
+                    <td class="text-center text-dark">{{ number_format($data['pengunjung']) }}</td>
+                    <td class="text-center text-secondary">{{ $data['pengunjung_pct'] }}%</td>
+                    <td class="text-center fw-medium text-dark">{{ number_format($data['kunjungan']) }}</td>
+                    <td class="text-center text-secondary">{{ $data['kunjungan_pct'] }}%</td>
                 </tr>
                 @endforeach
 
                 <!-- Subtotal Row -->
-                <tr style="background-color: rgba(178, 224, 178, 0.25);" class="fw-bold">
-                    <td colspan="2" class="text-end" style="color: var(--palette-5);">SUB TOTAL {{ strtoupper($groupName) }}:</td>
-                    <td class="text-center" style="color: var(--palette-5);">{{ number_format($subTotals[$groupName]['pengunjung']) }}</td>
-                    <td class="text-center" style="color: var(--palette-5);">{{ round(($subTotals[$groupName]['pengunjung'] / max(1, $totalPengunjungAll)) * 100, 2) }}%</td>
-                    <td class="text-center fs-6" style="color: var(--palette-5);">{{ number_format($subTotals[$groupName]['kunjungan']) }}</td>
-                    <td class="text-center" style="color: var(--palette-5);">{{ round(($subTotals[$groupName]['kunjungan'] / max(1, $totalKunjunganAll)) * 100, 2) }}%</td>
+                <tr class="fw-bold bg-white">
+                    <td colspan="2" class="text-end text-dark">SUB TOTAL {{ strtoupper($groupName) }}:</td>
+                    <td class="text-center text-dark fw-bold">{{ number_format($subTotals[$groupName]['pengunjung']) }}</td>
+                    <td class="text-center text-dark fw-bold">{{ round(($subTotals[$groupName]['pengunjung'] / max(1, $totalPengunjungAll)) * 100, 2) }}%</td>
+                    <td class="text-center text-dark fw-bold">{{ number_format($subTotals[$groupName]['kunjungan']) }}</td>
+                    <td class="text-center text-dark fw-bold">{{ round(($subTotals[$groupName]['kunjungan'] / max(1, $totalKunjunganAll)) * 100, 2) }}%</td>
                 </tr>
                 @endforeach
             </tbody>
-            <tfoot style="background-color: var(--palette-5); color: #ffffff;" class="fw-bold text-center">
+            <tfoot class="fw-bold text-center bg-white">
                 <tr>
-                    <td colspan="2" class="text-end">GRAND TOTAL SELURUH PELAYANAN:</td>
-                    <td>{{ number_format($totalPengunjungAll) }}</td>
-                    <td>100%</td>
-                    <td style="color: var(--palette-1);" class="fs-5">{{ number_format($totalKunjunganAll) }}</td>
-                    <td>100%</td>
+                    <td colspan="2" class="text-end text-dark">GRAND TOTAL SELURUH PELAYANAN:</td>
+                    <td class="text-dark fw-bold">{{ number_format($totalPengunjungAll) }}</td>
+                    <td class="text-dark fw-bold">100%</td>
+                    <td class="text-dark fw-bold">{{ number_format($totalKunjunganAll) }}</td>
+                    <td class="text-dark fw-bold">100%</td>
                 </tr>
             </tfoot>
         </table>

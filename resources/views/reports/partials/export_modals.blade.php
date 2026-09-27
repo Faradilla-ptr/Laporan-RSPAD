@@ -14,17 +14,10 @@
                     <p class="text-muted small mb-3">Silakan pilih bulan, tahun, dan poliklinik data yang ingin Anda ekspor ke format Microsoft Excel (.xlsx).</p>
 
                     <div class="mb-3">
-                        <label class="form-label fw-semibold small text-muted mb-1">Bulan Periode</label>
+                        <label class="form-label fw-semibold small text-muted mb-1">Bulan / Periode</label>
                         <select name="month" id="excelExportMonth" class="form-select">
-                            @php
-                                $months = [
-                                    1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
-                                    5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
-                                    9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember'
-                                ];
-                            @endphp
-                            @foreach($months as $num => $name)
-                                <option value="{{ $num }}" {{ (isset($month) && $month == $num) ? 'selected' : '' }}>{{ $name }}</option>
+                            @foreach($availableMonths as $num => $name)
+                                <option value="{{ $num }}" {{ (isset($month) && (string)$month == (string)$num) ? 'selected' : '' }}>{{ $name }}</option>
                             @endforeach
                         </select>
                     </div>
@@ -32,9 +25,16 @@
                     <div class="mb-3">
                         <label class="form-label fw-semibold small text-muted mb-1">Tahun Periode</label>
                         <select name="year" id="excelExportYear" class="form-select">
-                            @foreach(range(2024, 2030) as $y)
-                                <option value="{{ $y }}" {{ (isset($year) && $year == $y) ? 'selected' : '' }}>{{ $y }}</option>
-                            @endforeach
+                            <option value="SEMUA" {{ (isset($year) && $year == 'SEMUA') ? 'selected' : '' }}>-- SEMUA TAHUN --</option>
+                            @if(isset($dbYears) && count($dbYears) > 0)
+                                @foreach($dbYears as $y)
+                                    <option value="{{ $y }}" {{ (isset($year) && (string)$year == (string)$y) ? 'selected' : '' }}>{{ $y }}</option>
+                                @endforeach
+                            @else
+                                @foreach(range(2024, 2030) as $y)
+                                    <option value="{{ $y }}" {{ (isset($year) && (string)$year == (string)$y) ? 'selected' : '' }}>{{ $y }}</option>
+                                @endforeach
+                            @endif
                         </select>
                     </div>
 

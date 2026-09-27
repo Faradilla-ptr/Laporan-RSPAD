@@ -17,9 +17,9 @@
         <div class="col-lg-3 col-md-6">
             <label class="form-label fw-semibold small text-muted mb-1"><i class="bi bi-calendar-month me-1"></i>Bulan Periode</label>
             <select name="month" class="form-select form-select-sm">
-                @foreach(range(1, 12) as $m)
-                    <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>
-                        {{ DateTime::createFromFormat('!m', $m)->format('F') }}
+                @foreach($availableMonths as $mNum => $mName)
+                    <option value="{{ $mNum }}" {{ $month == (string)$mNum ? 'selected' : '' }}>
+                        {{ $mName }}
                     </option>
                 @endforeach
             </select>
@@ -27,9 +27,16 @@
         <div class="col-lg-2 col-md-6">
             <label class="form-label fw-semibold small text-muted mb-1"><i class="bi bi-calendar-event me-1"></i>Tahun Periode</label>
             <select name="year" class="form-select form-select-sm">
-                @foreach(range(2024, 2030) as $y)
-                    <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>{{ $y }}</option>
-                @endforeach
+                <option value="SEMUA" {{ $year == 'SEMUA' ? 'selected' : '' }}>-- SEMUA TAHUN --</option>
+                @if(isset($dbYears) && count($dbYears) > 0)
+                    @foreach($dbYears as $y)
+                        <option value="{{ $y }}" {{ $year == (string)$y ? 'selected' : '' }}>{{ $y }}</option>
+                    @endforeach
+                @else
+                    @foreach(range(2024, 2030) as $y)
+                        <option value="{{ $y }}" {{ $year == (string)$y ? 'selected' : '' }}>{{ $y }}</option>
+                    @endforeach
+                @endif
             </select>
         </div>
         <div class="col-lg-3 col-md-6">
@@ -103,7 +110,7 @@
 <!-- Deduplicated Patients Verification Table -->
 <div class="card-panel p-4">
     <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-        <h6 class="fw-bold mb-0" style="color: var(--palette-5);">Daftar Pasien Unik (RM Unik Periode {{ DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }})</h6>
+        <h6 class="fw-bold mb-0" style="color: var(--palette-5);">Daftar Pasien Unik (RM Unik Periode {{ $availableMonths[$month] ?? $month }} {{ $year }})</h6>
         <span class="badge badge-palette px-2 py-1 font-monospace" style="font-size: 0.775rem;">TOTAL: {{ number_format($patients->total()) }} Pasien</span>
     </div>
 
@@ -113,7 +120,6 @@
                 <tr>
                     <th>No</th>
                     <th>No RM</th>
-                    <th>Nama Pasien</th>
                     <th>Status Pasien</th>
                     <th>Jenis Kelamin</th>
                     <th>Alamat / Domisili</th>
@@ -124,7 +130,6 @@
                 <tr>
                     <td>{{ $patients->firstItem() + $idx }}</td>
                     <td class="fw-bold text-dark font-monospace">{{ $p->no_rm }}</td>
-                    <td class="fw-medium text-dark">{{ $p->nama_pasien }}</td>
                     <td>
                         <span class="badge" style="background-color: var(--palette-1); color: var(--palette-5); border: 1px solid var(--palette-2); font-weight: 600;">
                             {{ $p->status_pasien }}
@@ -135,7 +140,7 @@
                 </tr>
                 @empty
                 <tr>
-                    <td colspan="6" class="text-center text-muted py-3">Belum ada data pasien pada periode ini.</td>
+                    <td colspan="5" class="text-center text-muted py-3">Belum ada data pasien pada periode ini.</td>
                 </tr>
                 @endforelse
             </tbody>
@@ -195,7 +200,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                Apakah Anda yakin ingin menghapus seluruh data <strong>Pengunjung Baru</strong> pada periode {{ DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }}? Action ini tidak dapat dibatalkan.
+                Apakah Anda yakin ingin menghapus seluruh data <strong>Pengunjung Baru</strong> pada periode {{ $availableMonths[$month] ?? $month }} {{ $year }}? Action ini tidak dapat dibatalkan.
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
@@ -253,7 +258,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                Apakah Anda yakin ingin menghapus seluruh data <strong>Pengunjung Lama</strong> pada periode {{ DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }}? Action ini tidak dapat dibatalkan.
+                Apakah Anda yakin ingin menghapus seluruh data <strong>Pengunjung Lama</strong> pada periode {{ $availableMonths[$month] ?? $month }} {{ $year }}? Action ini tidak dapat dibatalkan.
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>

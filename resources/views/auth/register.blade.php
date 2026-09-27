@@ -279,11 +279,12 @@
                         <label for="role" class="form-label fw-semibold small text-secondary mb-1">Peran Akses</label>
                         <div class="position-relative">
                             <select class="form-select form-control-rspad ps-5 @error('role') is-invalid @enderror" id="role" name="role" required>
-                                <option value="petugas" {{ old('role') === 'petugas' ? 'selected' : '' }}>Petugas Input</option>
-                                <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Admin Sistem</option>
+                                <option value="petugas" {{ old('role') === 'petugas' ? 'selected' : '' }}>Petugas Input (Perlu Validasi Admin)</option>
+                                <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Admin Sistem (Kaur)</option>
                             </select>
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted position-absolute start-0 top-50 translate-middle-y ms-3"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle></svg>
                         </div>
+                        <span class="text-muted extra-small d-block mt-1"><i class="bi bi-shield-lock me-1"></i>Akun Petugas perlu validasi Admin (Kaur) sebelum aktif.</span>
                     </div>
                     <div class="col-md-6">
                         <label for="nip_nrp" class="form-label fw-semibold small text-secondary mb-1">NIP / NRP <span class="fw-normal text-muted">(Opsional)</span></label>

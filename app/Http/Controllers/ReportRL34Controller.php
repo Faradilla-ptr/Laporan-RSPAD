@@ -12,25 +12,18 @@ class ReportRL34Controller extends Controller
     public function index(Request $request)
     {
         $latestDate = RawVisit::max('tgl_berobat');
-        $defaultMonth = $latestDate ? (int) date('n', strtotime($latestDate)) : (int) date('n');
-        $defaultYear = $latestDate ? (int) date('Y', strtotime($latestDate)) : (int) date('Y');
+        $defaultMonth = $latestDate ? (string) date('n', strtotime($latestDate)) : (string) date('n');
+        $defaultYear = $latestDate ? (string) date('Y', strtotime($latestDate)) : (string) date('Y');
 
-        $month = (int) $request->input('month', $defaultMonth);
-        if ($month < 1 || $month > 12) {
-            $month = $defaultMonth;
-        }
-        $year = (int) $request->input('year', $defaultYear);
-        if ($year < 2000 || $year > 2100) {
-            $year = $defaultYear;
-        }
+        $month = (string) $request->input('month', $defaultMonth);
+        $year = (string) $request->input('year', $defaultYear);
         $poli = $request->input('poli', 'SEMUA');
-
-        $startDate = sprintf('%04d-%02d-01', $year, $month);
-        $endDate = date('Y-m-t', strtotime($startDate));
 
         $polikliniks = RawVisit::whereNotNull('poliklinik')->where('poliklinik', '!=', '')->distinct('poliklinik')->pluck('poliklinik')->filter()->sort()->values();
 
-        $query = RawVisit::query()->whereBetween('tgl_berobat', [$startDate, $endDate]);
+        $query = RawVisit::query();
+        $this->applyDateFilter($query, $month, $year);
+
         if ($poli && $poli !== 'SEMUA') {
             $query->where('poliklinik', $poli);
         }
@@ -41,9 +34,13 @@ class ReportRL34Controller extends Controller
         $totalPengunjung = $pengunjungBaru + $pengunjungLama;
 
         // Sample list of deduplicated patients for verification
-        $patients = RawVisit::query()
-            ->whereBetween('tgl_berobat', [$startDate, $endDate])
-            ->when($poli && $poli !== 'SEMUA', fn ($q) => $q->where('poliklinik', $poli))
+        $patientsQuery = RawVisit::query();
+        $this->applyDateFilter($patientsQuery, $month, $year);
+        if ($poli && $poli !== 'SEMUA') {
+            $patientsQuery->where('poliklinik', $poli);
+        }
+
+        $patients = $patientsQuery
             ->select(
                 'no_rm',
                 DB::raw('MAX(nama_pasien) as nama_pasien'),
@@ -56,6 +53,20 @@ class ReportRL34Controller extends Controller
             ->paginate(15)
             ->withQueryString();
 
+        $yearExpr = DB::connection()->getDriverName() === 'sqlite' ? "strftime('%Y', tgl_berobat) as y" : 'YEAR(tgl_berobat) as y';
+        $dbYears = RawVisit::selectRaw($yearExpr)
+            ->whereNotNull('tgl_berobat')
+            ->distinct()
+            ->pluck('y')
+            ->filter()
+            ->sort()
+            ->values()
+            ->toArray();
+
+        if (empty($dbYears)) {
+            $dbYears = [2024, 2025, 2026];
+        }
+
         return view('reports.rl34', compact(
             'month',
             'year',
@@ -64,8 +75,37 @@ class ReportRL34Controller extends Controller
             'pengunjungBaru',
             'pengunjungLama',
             'totalPengunjung',
-            'patients'
+            'patients',
+            'dbYears'
         ));
+    }
+
+    private function applyDateFilter($query, $month, $year)
+    {
+        if ($year !== 'SEMUA') {
+            $query->whereYear('tgl_berobat', (int) $year);
+        }
+
+        if ($month === 'SEMUA') {
+            // All months
+        } elseif (in_array($month, ['T1', 'T2', 'T3', 'T4', 'S1', 'S2'])) {
+            $ranges = [
+                'T1' => [1, 3], 'T2' => [4, 6], 'T3' => [7, 9], 'T4' => [10, 12],
+                'S1' => [1, 6], 'S2' => [7, 12],
+            ];
+            $range = $ranges[$month];
+            $query->where(function ($q) use ($range) {
+                if (DB::connection()->getDriverName() === 'sqlite') {
+                    $q->whereRaw("CAST(strftime('%m', tgl_berobat) AS INTEGER) BETWEEN ? AND ?", $range);
+                } else {
+                    $q->whereBetween(DB::raw('MONTH(tgl_berobat)'), $range);
+                }
+            });
+        } else {
+            $query->whereMonth('tgl_berobat', (int) $month);
+        }
+
+        return $query;
     }
 
     public function exportExcel(Request $request)
@@ -74,14 +114,8 @@ class ReportRL34Controller extends Controller
         $defaultMonth = $latestDate ? (int) date('n', strtotime($latestDate)) : (int) date('n');
         $defaultYear = $latestDate ? (int) date('Y', strtotime($latestDate)) : (int) date('Y');
 
-        $month = (int) $request->input('month', $defaultMonth);
-        if ($month < 1 || $month > 12) {
-            $month = $defaultMonth;
-        }
-        $year = (int) $request->input('year', $defaultYear);
-        if ($year < 2000 || $year > 2100) {
-            $year = $defaultYear;
-        }
+        $month = (string) $request->input('month', $defaultMonth);
+        $year = (string) $request->input('year', $defaultYear);
         $poli = $request->input('poli', 'SEMUA');
 
         $poliSlug = ($poli && $poli !== 'SEMUA') ? preg_replace('/[^A-Za-z0-9_\-]/', '_', $poli) : 'SEMUA';

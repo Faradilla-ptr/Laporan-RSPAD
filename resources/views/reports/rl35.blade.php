@@ -17,9 +17,9 @@
         <div class="col-lg-3 col-md-6">
             <label class="form-label fw-semibold small text-muted mb-1"><i class="bi bi-calendar-month me-1"></i>Bulan Periode</label>
             <select name="month" class="form-select form-select-sm">
-                @foreach(range(1, 12) as $m)
-                    <option value="{{ $m }}" {{ $month == $m ? 'selected' : '' }}>
-                        {{ DateTime::createFromFormat('!m', $m)->format('F') }}
+                @foreach($availableMonths as $mNum => $mName)
+                    <option value="{{ $mNum }}" {{ $month == (string)$mNum ? 'selected' : '' }}>
+                        {{ $mName }}
                     </option>
                 @endforeach
             </select>
@@ -27,9 +27,16 @@
         <div class="col-lg-2 col-md-6">
             <label class="form-label fw-semibold small text-muted mb-1"><i class="bi bi-calendar-event me-1"></i>Tahun Periode</label>
             <select name="year" class="form-select form-select-sm">
-                @foreach(range(2024, 2030) as $y)
-                    <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>{{ $y }}</option>
-                @endforeach
+                <option value="SEMUA" {{ $year == 'SEMUA' ? 'selected' : '' }}>-- SEMUA TAHUN --</option>
+                @if(isset($dbYears) && count($dbYears) > 0)
+                    @foreach($dbYears as $y)
+                        <option value="{{ $y }}" {{ $year == (string)$y ? 'selected' : '' }}>{{ $y }}</option>
+                    @endforeach
+                @else
+                    @foreach(range(2024, 2030) as $y)
+                        <option value="{{ $y }}" {{ $year == (string)$y ? 'selected' : '' }}>{{ $y }}</option>
+                    @endforeach
+                @endif
             </select>
         </div>
         <div class="col-lg-3 col-md-6">
@@ -58,20 +65,20 @@
 <div class="card-panel p-4 mb-4">
     <div class="table-responsive">
         <table class="table table-clean table-bordered table-hover text-nowrap align-middle">
-            <thead class="text-center">
+            <thead class="text-center text-white" style="background-color: #23422e;">
                 <tr>
-                    <th rowspan="2" style="width: 50px;">No.</th>
-                    <th rowspan="2" style="width: 140px;">Aksi</th>
-                    <th rowspan="2">Jenis Kegiatan</th>
-                    <th colspan="2">Kunjungan Pasien Dalam Kota</th>
-                    <th colspan="2">Kunjungan Pasien Luar Kota</th>
-                    <th rowspan="2">Total Kunjungan</th>
+                    <th rowspan="2" style="width: 50px;">NO.</th>
+                    <th rowspan="2" style="width: 140px;">AKSI</th>
+                    <th rowspan="2">JENIS KEGIATAN</th>
+                    <th colspan="2">KUNJUNGAN PASIEN DALAM KOTA</th>
+                    <th colspan="2">KUNJUNGAN PASIEN LUAR KOTA</th>
+                    <th rowspan="2">TOTAL KUNJUNGAN</th>
                 </tr>
                 <tr>
-                    <th>Laki-Laki</th>
-                    <th>Perempuan</th>
-                    <th>Laki-Laki</th>
-                    <th>Perempuan</th>
+                    <th>LAKI-LAKI</th>
+                    <th>PEREMPUAN</th>
+                    <th>LAKI-LAKI</th>
+                    <th>PEREMPUAN</th>
                 </tr>
             </thead>
             <tbody>
@@ -89,7 +96,7 @@
                     <td class="text-center">{{ number_format($p['dalam_kota_p']) }}</td>
                     <td class="text-center">{{ number_format($p['luar_kota_l']) }}</td>
                     <td class="text-center">{{ number_format($p['luar_kota_p']) }}</td>
-                    <td class="text-center fw-bold" style="color: var(--palette-5);">{{ number_format($p['total']) }}</td>
+                    <td class="text-center fw-bold text-dark">{{ number_format($p['total']) }}</td>
                 </tr>
                 @empty
                 <tr>
@@ -97,14 +104,14 @@
                 </tr>
                 @endforelse
             </tbody>
-            <tfoot style="background-color: rgba(178, 224, 178, 0.25);" class="fw-bold">
+            <tfoot class="fw-bold bg-white">
                 <tr>
-                    <td colspan="3" class="text-end" style="color: var(--palette-5);">TOTAL SELURUH KUNJUNGAN:</td>
-                    <td class="text-center" style="color: var(--palette-5);">{{ number_format(array_sum(array_column($poliData, 'dalam_kota_l'))) }}</td>
-                    <td class="text-center" style="color: var(--palette-5);">{{ number_format(array_sum(array_column($poliData, 'dalam_kota_p'))) }}</td>
-                    <td class="text-center" style="color: var(--palette-5);">{{ number_format(array_sum(array_column($poliData, 'luar_kota_l'))) }}</td>
-                    <td class="text-center" style="color: var(--palette-5);">{{ number_format(array_sum(array_column($poliData, 'luar_kota_p'))) }}</td>
-                    <td class="text-center fs-5" style="color: var(--palette-5);">{{ number_format($totalKunjunganAll) }}</td>
+                    <td colspan="3" class="text-end text-dark">TOTAL SELURUH KUNJUNGAN:</td>
+                    <td class="text-center text-dark fw-bold">{{ number_format(array_sum(array_column($poliData, 'dalam_kota_l'))) }}</td>
+                    <td class="text-center text-dark fw-bold">{{ number_format(array_sum(array_column($poliData, 'dalam_kota_p'))) }}</td>
+                    <td class="text-center text-dark fw-bold">{{ number_format(array_sum(array_column($poliData, 'luar_kota_l'))) }}</td>
+                    <td class="text-center text-dark fw-bold">{{ number_format(array_sum(array_column($poliData, 'luar_kota_p'))) }}</td>
+                    <td class="text-center text-dark fw-bold fs-5">{{ number_format($totalKunjunganAll) }}</td>
                 </tr>
             </tfoot>
         </table>
@@ -160,7 +167,7 @@
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
             <div class="modal-body">
-                Apakah Anda yakin ingin menghapus seluruh data kunjungan untuk <strong>{{ $p['poliklinik'] }}</strong> pada periode {{ DateTime::createFromFormat('!m', $month)->format('F') }} {{ $year }}? Total <strong>{{ number_format($p['total']) }}</strong> data kunjungan akan dihapus. Action ini tidak dapat dibatalkan.
+                Apakah Anda yakin ingin menghapus seluruh data kunjungan untuk <strong>{{ $p['poliklinik'] }}</strong> pada periode {{ $availableMonths[$month] ?? $month }} {{ $year }}? Total <strong>{{ number_format($p['total']) }}</strong> data kunjungan akan dihapus. Action ini tidak dapat dibatalkan.
             </div>
             <div class="modal-footer">
                 <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>

@@ -6,30 +6,37 @@
 <!-- Filter & Header Bar -->
 <div class="card-panel p-4 mb-4" style="border-left: 5px solid var(--palette-5);">
     <form action="{{ url()->current() }}" method="GET" class="row g-3 align-items-center">
-        <div class="col-lg-5 col-md-12">
+        <div class="col-lg-4 col-md-12">
             <div>
                 <h5 class="fw-bold mb-0 text-dark">Dashboard Rekapitulasi Pelaporan SIMRS</h5>
                 <span class="text-muted small">
-                    Periode Aktif: <strong>{{ $availableMonths[$month] ?? '' }} {{ $year }}</strong>
+                    Periode Aktif: <strong>{{ $availableMonths[$month] ?? $month }} {{ $year == 'SEMUA' ? 'Semua Tahun' : $year }}</strong>
                 </span>
             </div>
         </div>
         <div class="col-lg-3 col-md-4">
-            <label class="form-label fw-semibold small text-muted mb-1"><i class="bi bi-calendar-month me-1"></i>Pilih Bulan</label>
+            <label class="form-label fw-semibold small text-muted mb-1"><i class="bi bi-calendar-month me-1"></i>Pilih Bulan / Periode</label>
             <select name="month" class="form-select form-select-sm shadow-sm border-secondary-subtle">
                 @foreach($availableMonths as $mNum => $mName)
-                    <option value="{{ $mNum }}" {{ $month == $mNum ? 'selected' : '' }}>
+                    <option value="{{ $mNum }}" {{ $month == (string)$mNum ? 'selected' : '' }}>
                         {{ $mName }}
                     </option>
                 @endforeach
             </select>
         </div>
-        <div class="col-lg-2 col-md-4">
+        <div class="col-lg-3 col-md-4">
             <label class="form-label fw-semibold small text-muted mb-1"><i class="bi bi-calendar-event me-1"></i>Pilih Tahun</label>
             <select name="year" class="form-select form-select-sm shadow-sm border-secondary-subtle">
-                @foreach(range(2024, 2030) as $y)
-                    <option value="{{ $y }}" {{ $year == $y ? 'selected' : '' }}>{{ $y }}</option>
-                @endforeach
+                <option value="SEMUA" {{ $year == 'SEMUA' ? 'selected' : '' }}>-- SEMUA TAHUN --</option>
+                @if(isset($dbYears) && count($dbYears) > 0)
+                    @foreach($dbYears as $y)
+                        <option value="{{ $y }}" {{ $year == (string)$y ? 'selected' : '' }}>{{ $y }}</option>
+                    @endforeach
+                @else
+                    @foreach(range(2024, 2030) as $y)
+                        <option value="{{ $y }}" {{ $year == (string)$y ? 'selected' : '' }}>{{ $y }}</option>
+                    @endforeach
+                @endif
             </select>
         </div>
         <div class="col-lg-2 col-md-4 mt-auto">
@@ -116,14 +123,18 @@
     <!-- Trend Line Chart -->
     <div class="col-lg-7 col-md-12">
         <div class="card-panel p-4 h-100 d-flex flex-column">
-            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+            <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 border-bottom pb-2 gap-2">
                 <div>
                     <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-graph-up-arrow me-2" style="color: var(--palette-5);"></i>Grafik Tren Kunjungan vs Pengunjung</h6>
                     <span class="text-muted small">Perbandingan total kontak registrasi vs pasien unik per hari</span>
                 </div>
-                <span class="badge px-2 py-1" style="background-color: var(--palette-1); color: var(--palette-5); font-weight: 600;">
-                    {{ $availableMonths[$month] ?? '' }} {{ $year }}
-                </span>
+                <div class="d-flex align-items-center gap-2">
+                    <select id="chartFilterSelect" class="form-select form-select-sm shadow-sm border-secondary-subtle" style="font-size: 0.8rem; font-weight: 600;">
+                        <option value="SEMUA" {{ ($chartFilter ?? 'SEMUA') == 'SEMUA' ? 'selected' : '' }}>Semua Grafik</option>
+                        <option value="KUNJUNGAN" {{ ($chartFilter ?? '') == 'KUNJUNGAN' ? 'selected' : '' }}>Hanya Kunjungan</option>
+                        <option value="PENGUNJUNG" {{ ($chartFilter ?? '') == 'PENGUNJUNG' ? 'selected' : '' }}>Hanya Pengunjung</option>
+                    </select>
+                </div>
             </div>
             <div class="flex-grow-1 position-relative" style="min-height: 310px;">
                 @if(count($dailyTrend) > 0)
@@ -341,36 +352,38 @@
                 return d.date;
             });
 
-            new Chart(ctxTrend.getContext('2d'), {
+            const dsKunjungan = {
+                label: 'Total Kunjungan (Kontak)',
+                data: dailyData.map(d => d.total_kunjungan),
+                borderColor: '#1e532b',
+                backgroundColor: 'rgba(30, 83, 43, 0.15)',
+                borderWidth: 2.5,
+                pointRadius: 3,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#1e532b',
+                fill: true,
+                tension: 0.3
+            };
+
+            const dsPengunjung = {
+                label: 'Total Pengunjung (Pasien Unik)',
+                data: dailyData.map(d => d.total_pengunjung),
+                borderColor: '#d97706',
+                backgroundColor: 'rgba(217, 119, 6, 0.12)',
+                borderWidth: 2.5,
+                borderDash: [4, 4],
+                pointRadius: 3.5,
+                pointHoverRadius: 6,
+                pointBackgroundColor: '#d97706',
+                fill: true,
+                tension: 0.3
+            };
+
+            const trendChartInstance = new Chart(ctxTrend.getContext('2d'), {
                 type: 'line',
                 data: {
                     labels: labels,
-                    datasets: [
-                        {
-                            label: 'Total Kunjungan (Kontak)',
-                            data: dailyData.map(d => d.total_kunjungan),
-                            borderColor: '#2A6A2A',
-                            backgroundColor: 'rgba(42, 106, 42, 0.12)',
-                            borderWidth: 2.5,
-                            pointRadius: 3,
-                            pointHoverRadius: 6,
-                            pointBackgroundColor: '#2A6A2A',
-                            fill: true,
-                            tension: 0.3
-                        },
-                        {
-                            label: 'Total Pengunjung (Pasien Unik)',
-                            data: dailyData.map(d => d.total_pengunjung),
-                            borderColor: '#3B8A3B',
-                            backgroundColor: 'transparent',
-                            borderWidth: 2,
-                            borderDash: [5, 5],
-                            pointRadius: 3,
-                            pointHoverRadius: 6,
-                            pointBackgroundColor: '#3B8A3B',
-                            tension: 0.3
-                        }
-                    ]
+                    datasets: [dsKunjungan, dsPengunjung]
                 },
                 options: {
                     responsive: true,
@@ -426,6 +439,25 @@
                     }
                 }
             });
+
+            // Handle live filtering of chart lines
+            const chartFilterSelect = document.getElementById('chartFilterSelect');
+            if (chartFilterSelect) {
+                chartFilterSelect.addEventListener('change', function() {
+                    const val = this.value;
+                    if (val === 'KUNJUNGAN') {
+                        trendChartInstance.setDatasetVisibility(0, true);
+                        trendChartInstance.setDatasetVisibility(1, false);
+                    } else if (val === 'PENGUNJUNG') {
+                        trendChartInstance.setDatasetVisibility(0, false);
+                        trendChartInstance.setDatasetVisibility(1, true);
+                    } else {
+                        trendChartInstance.setDatasetVisibility(0, true);
+                        trendChartInstance.setDatasetVisibility(1, true);
+                    }
+                    trendChartInstance.update();
+                });
+            }
         }
 
         // 2. Kelompok Doughnut Chart

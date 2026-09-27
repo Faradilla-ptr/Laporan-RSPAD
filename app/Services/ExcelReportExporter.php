@@ -34,6 +34,67 @@ class ExcelReportExporter
         }
     }
 
+    public static function getPeriodText($month, $year)
+    {
+        $monthsMap = [
+            'SEMUA' => 'Semua Bulan',
+            '1' => 'Januari', '2' => 'Februari', '3' => 'Maret', '4' => 'April',
+            '5' => 'Mei', '6' => 'Juni', '7' => 'Juli', '8' => 'Agustus',
+            '9' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember',
+            '01' => 'Januari', '02' => 'Februari', '03' => 'Maret', '04' => 'April',
+            '05' => 'Mei', '06' => 'Juni', '07' => 'Juli', '08' => 'Agustus',
+            '09' => 'September', '10' => 'Oktober', '11' => 'November', '12' => 'Desember',
+            'T1' => 'Triwulan I (Jan - Mar)', 'T2' => 'Triwulan II (Apr - Jun)',
+            'T3' => 'Triwulan III (Jul - Sep)', 'T4' => 'Triwulan IV (Okt - Des)',
+            'S1' => 'Semester 1 (Jan - Jun)', 'S2' => 'Semester 2 (Jul - Des)',
+        ];
+
+        $mKey = (string) $month;
+        $mText = $monthsMap[$mKey] ?? (is_numeric($mKey) ? ($monthsMap[(int) $mKey] ?? $mKey) : $mKey);
+        $yText = ($year === 'SEMUA' || empty($year)) ? 'Semua Tahun' : (string) $year;
+
+        if ($mKey === 'SEMUA' && $yText === 'Semua Tahun') {
+            return 'Semua Periode';
+        }
+
+        return "{$mText} {$yText}";
+    }
+
+    public static function getPeriodDateRangeText($month, $year)
+    {
+        $yStr = ($year === 'SEMUA' || empty($year)) ? 'Semua Tahun' : (string) $year;
+        $mStr = (string) $month;
+
+        if (is_numeric($mStr)) {
+            $mInt = (int) $mStr;
+            $mPad = sprintf('%02d', $mInt);
+            if ($yStr !== 'Semua Tahun') {
+                $lastDay = date('t', strtotime("{$yStr}-{$mPad}-01"));
+
+                return "01/{$mPad}/{$yStr} s/d {$lastDay}/{$mPad}/{$yStr}";
+            }
+
+            return "Bulan {$mPad} {$yStr}";
+        }
+
+        switch ($mStr) {
+            case 'T1':
+                return "01/01/{$yStr} s/d 31/03/{$yStr}";
+            case 'T2':
+                return "01/04/{$yStr} s/d 30/06/{$yStr}";
+            case 'T3':
+                return "01/07/{$yStr} s/d 30/09/{$yStr}";
+            case 'T4':
+                return "01/10/{$yStr} s/d 31/12/{$yStr}";
+            case 'S1':
+                return "01/01/{$yStr} s/d 30/06/{$yStr}";
+            case 'S2':
+                return "01/07/{$yStr} s/d 31/12/{$yStr}";
+            default:
+                return "SEMUA PERIODE ({$yStr})";
+        }
+    }
+
     /**
      * Normalize Pasien Status to 'Pasien Baru' or 'Pasien Lama'
      */
@@ -137,10 +198,8 @@ class ExcelReportExporter
         ini_set('memory_limit', '1024M');
         set_time_limit(300);
 
-        $m = (int) ($month ?: date('m'));
-        $y = (int) ($year ?: date('Y'));
-        $startDate = sprintf('%04d-%02d-01', $y, $m);
-        $endDate = date('Y-m-t', strtotime($startDate));
+        $m = (string) ($month ?: 'SEMUA');
+        $y = (string) ($year ?: 'SEMUA');
 
         $cacheFile = self::getCachePath('puskesad', $m, $y, $poli);
 
@@ -156,7 +215,8 @@ class ExcelReportExporter
 
         $targetFile = $savePath ?: $cacheFile;
 
-        $query = DB::table('raw_visits')->whereBetween('tgl_berobat', [$startDate, $endDate]);
+        $query = DB::table('raw_visits');
+        self::applyDateFilter($query, $m, $y);
         if ($poli && $poli !== 'SEMUA') {
             $query->where('poliklinik', $poli);
         }
@@ -166,9 +226,8 @@ class ExcelReportExporter
         $spreadsheet = new Spreadsheet;
 
         $darkGreenHeader = '2A6A2A';
-        $mStr = sprintf('%02d', $m);
+        $mStr = is_numeric($m) ? sprintf('%02d', (int) $m) : (string) $m;
         $yStr = (string) $y;
-        $lastDay = date('t', strtotime("{$yStr}-{$mStr}-01"));
         $poliTitle = ($poli && $poli !== 'SEMUA') ? strtoupper($poli) : 'SEMUA POLI';
 
         // Unique patients by RM
@@ -187,17 +246,12 @@ class ExcelReportExporter
         $sheetPuskesad->setTitle('LAPORAN PUSKESAD');
         $sheetPuskesad->setShowGridLines(true);
 
-        $bulanIndoMap = [
-            1 => 'JANUARI', 2 => 'PEBRUARI', 3 => 'MARET', 4 => 'APRIL',
-            5 => 'MEI', 6 => 'JUNI', 7 => 'JULI', 8 => 'AGUSTUS',
-            9 => 'SEPTEMBER', 10 => 'OKTOBER', 11 => 'NOPEMBER', 12 => 'DESEMBER',
-        ];
-        $bulanText = $bulanIndoMap[$m] ?? strtoupper(date('F', strtotime("{$yStr}-{$mStr}-01")));
+        $bulanText = self::getPeriodText($m, $y);
 
         $sheetPuskesad->setCellValue('A1', 'RSPAD GATOT SOEBROTO');
         $sheetPuskesad->setCellValue('A2', 'INSTALASI REKAM MEDIS DAN INFOKES');
         $sheetPuskesad->setCellValue('A3', 'LAPORAN PELAYANAN RAWAT JALAN');
-        $sheetPuskesad->setCellValue('A4', "BULAN {$bulanText} {$yStr}");
+        $sheetPuskesad->setCellValue('A4', strtoupper("PERIODE {$bulanText}"));
 
         $sheetPuskesad->mergeCells('A1:F1');
         $sheetPuskesad->mergeCells('A2:F2');
@@ -794,7 +848,7 @@ class ExcelReportExporter
         $sheetLap->setCellValue('A10', 'STATUS REGIS');
         $sheetLap->setCellValue('B10', ': OPEN');
         $sheetLap->setCellValue('A11', 'TANGGAL');
-        $sheetLap->setCellValue('B11', ": 01/{$mStr}/{$yStr} s/d {$lastDay}/{$mStr}/{$yStr}");
+        $sheetLap->setCellValue('B11', ': '.self::getPeriodDateRangeText($m, $y));
 
         $sheetLap->getStyle('A7:A11')->getFont()->setBold(true)->setSize(10);
         $sheetLap->getStyle('B7:B11')->getFont()->setSize(10);
@@ -847,7 +901,7 @@ class ExcelReportExporter
         $sheetRekap->setCellValue('A10', 'STATUS REGIS');
         $sheetRekap->setCellValue('B10', ': OPEN');
         $sheetRekap->setCellValue('A11', 'TANGGAL');
-        $sheetRekap->setCellValue('B11', ": 01/{$mStr}/{$yStr} s/d {$lastDay}/{$mStr}/{$yStr}");
+        $sheetRekap->setCellValue('B11', ': '.self::getPeriodDateRangeText($m, $y));
 
         $sheetRekap->setCellValue('A13', 'NO');
         $sheetRekap->setCellValue('B13', 'GOLONGAN PERSONIL');
@@ -926,10 +980,8 @@ class ExcelReportExporter
         ini_set('memory_limit', '1024M');
         set_time_limit(300);
 
-        $m = (int) ($month ?: date('m'));
-        $y = (int) ($year ?: date('Y'));
-        $startDate = sprintf('%04d-%02d-01', $y, $m);
-        $endDate = date('Y-m-t', strtotime($startDate));
+        $m = (string) ($month ?: 'SEMUA');
+        $y = (string) ($year ?: 'SEMUA');
 
         $cacheFile = self::getCachePath('rl34', $m, $y, $poli);
 
@@ -945,7 +997,8 @@ class ExcelReportExporter
 
         $targetFile = $savePath ?: $cacheFile;
 
-        $query = DB::table('raw_visits')->whereBetween('tgl_berobat', [$startDate, $endDate]);
+        $query = DB::table('raw_visits');
+        self::applyDateFilter($query, $m, $y);
         if ($poli && $poli !== 'SEMUA') {
             $query->where('poliklinik', $poli);
         }
@@ -982,7 +1035,7 @@ class ExcelReportExporter
 
         $sheetSummary->setCellValue('A1', 'RSPAD GATOT SOEBROTO');
         $sheetSummary->setCellValue('A2', 'LAPORAN REKAPITULASI PENGUNJUNG (RL 3.4)');
-        $sheetSummary->setCellValue('A3', 'PERIODE: '.date('F Y', strtotime($startDate)).' | POLIKLINIK: '.($poli ?: 'SEMUA POLIKLINIK'));
+        $sheetSummary->setCellValue('A3', 'PERIODE: '.self::getPeriodText($m, $y).' | POLIKLINIK: '.($poli ?: 'SEMUA POLIKLINIK'));
         $sheetSummary->getStyle('A1:A2')->getFont()->setBold(true)->setSize(12);
 
         $sheetSummary->setCellValue('A5', 'NO');
@@ -1166,10 +1219,8 @@ class ExcelReportExporter
         ini_set('memory_limit', '1024M');
         set_time_limit(300);
 
-        $m = (int) ($month ?: date('m'));
-        $y = (int) ($year ?: date('Y'));
-        $startDate = sprintf('%04d-%02d-01', $y, $m);
-        $endDate = date('Y-m-t', strtotime($startDate));
+        $m = (string) ($month ?: 'SEMUA');
+        $y = (string) ($year ?: 'SEMUA');
 
         $cacheFile = self::getCachePath('rl35', $m, $y, $poli);
 
@@ -1185,7 +1236,8 @@ class ExcelReportExporter
 
         $targetFile = $savePath ?: $cacheFile;
 
-        $query = DB::table('raw_visits')->whereBetween('tgl_berobat', [$startDate, $endDate]);
+        $query = DB::table('raw_visits');
+        self::applyDateFilter($query, $m, $y);
         if ($poli && $poli !== 'SEMUA') {
             $query->where('poliklinik', $poli);
         }
@@ -1204,7 +1256,7 @@ class ExcelReportExporter
 
         $sheetSummary->setCellValue('A1', 'RSPAD GATOT SOEBROTO');
         $sheetSummary->setCellValue('A2', 'LAPORAN REKAPITULASI KUNJUNGAN POLIKLINIK (RL 3.5)');
-        $sheetSummary->setCellValue('A3', 'PERIODE: '.date('F Y', strtotime($startDate)).' | POLIKLINIK: '.($poli ?: 'SEMUA POLIKLINIK'));
+        $sheetSummary->setCellValue('A3', 'PERIODE: '.self::getPeriodText($m, $y).' | POLIKLINIK: '.($poli ?: 'SEMUA POLIKLINIK'));
         $sheetSummary->getStyle('A1:A2')->getFont()->setBold(true)->setSize(12);
 
         $sheetSummary->setCellValue('A5', 'NO');
@@ -1222,6 +1274,7 @@ class ExcelReportExporter
         ]);
 
         $poliDataRaw = (clone $query)
+            ->reorder()
             ->select(
                 'poliklinik',
                 DB::raw("SUM(CASE WHEN (LOWER(COALESCE(alamat, '')) LIKE '%jakarta%' OR LOWER(COALESCE(alamat, '')) LIKE '%dki%') AND (UPPER(COALESCE(gender, 'L')) = 'L') THEN 1 ELSE 0 END) as dalam_l"),
@@ -1490,5 +1543,36 @@ class ExcelReportExporter
             (string) ($v->deskripsi_icd10_sekunder ?? ''),
             (string) ($v->status_registrasi ?? 'open'),
         ];
+    }
+
+    private static function applyDateFilter($query, $month, $year)
+    {
+        $yearStr = (string) $year;
+        $monthStr = (string) $month;
+
+        if ($yearStr !== 'SEMUA' && (int) $yearStr > 1900) {
+            $query->whereYear('tgl_berobat', (int) $yearStr);
+        }
+
+        if ($monthStr === 'SEMUA') {
+            // No month filter
+        } elseif (in_array($monthStr, ['T1', 'T2', 'T3', 'T4', 'S1', 'S2'])) {
+            $ranges = [
+                'T1' => [1, 3], 'T2' => [4, 6], 'T3' => [7, 9], 'T4' => [10, 12],
+                'S1' => [1, 6], 'S2' => [7, 12],
+            ];
+            $range = $ranges[$monthStr];
+            $query->where(function ($q) use ($range) {
+                if (DB::connection()->getDriverName() === 'sqlite') {
+                    $q->whereRaw("CAST(strftime('%m', tgl_berobat) AS INTEGER) BETWEEN ? AND ?", $range);
+                } else {
+                    $q->whereBetween(DB::raw('MONTH(tgl_berobat)'), $range);
+                }
+            });
+        } else {
+            $query->whereMonth('tgl_berobat', (int) $monthStr);
+        }
+
+        return $query;
     }
 }
