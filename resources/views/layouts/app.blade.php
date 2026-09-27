@@ -644,6 +644,27 @@
                     </svg>
                     <span>Laporan Puskesad</span>
                 </a>
+
+                <div class="nav-category mt-3">Sistem & Akun</div>
+
+                @if(Auth::check() && Auth::user()->role === 'admin')
+                <a href="{{ route('admin.activity_logs.index') }}" class="sidebar-link {{ request()->routeIs('admin.activity_logs.*') ? 'active' : '' }}" title="Log Aktivitas (Trail Log)">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14 2 14 8 20 8"></polyline>
+                        <circle cx="12" cy="14" r="3"></circle>
+                    </svg>
+                    <span>Trail Log Aktivitas</span>
+                </a>
+                @endif
+
+                <a href="{{ route('profile.index') }}" class="sidebar-link {{ request()->routeIs('profile.*') ? 'active' : '' }}" title="Profil Saya">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="12" cy="7" r="4"></circle>
+                    </svg>
+                    <span>Pengaturan Profil</span>
+                </a>
             </nav>
 
             <!-- Sidebar User Profile Footer -->
@@ -678,7 +699,26 @@
 
         <!-- Main Workspace -->
         <div class="app-main">
-            <!-- Content Area (Clean Workspace without Header Bar) -->
+            @auth
+            <!-- Top Header Bar with Live Real-time Clock (WIB) -->
+            <header class="bg-white border-bottom px-4 py-2.5 d-flex align-items-center justify-content-between shadow-sm" style="min-height: 52px;">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 small d-flex align-items-center gap-1.5 fw-semibold" style="font-size: 0.78rem;">
+                        <span class="spinner-grow spinner-grow-sm text-success" style="width: 7px; height: 7px;" role="status"></span>
+                        <i class="bi bi-clock-history"></i> Real-time System (WIB)
+                    </span>
+                    <span class="text-muted small fw-medium d-none d-md-inline ms-1">RSPAD Gatot Soebroto — SIMRS</span>
+                </div>
+                <div class="d-flex align-items-center gap-3">
+                    <div class="text-end">
+                        <div id="realtimeSystemClock" class="fw-bold text-dark font-monospace" style="font-size: 0.92rem; letter-spacing: 0.04em; color: #1e293b !important;">--:--:-- WIB</div>
+                        <div id="realtimeSystemDate" class="text-muted small" style="font-size: 0.73rem;">---</div>
+                    </div>
+                </div>
+            </header>
+            @endauth
+
+            <!-- Content Area -->
             <main class="container-fluid p-4">
                 <!-- Universal Notification Pop-up Modal -->
                 @if(session('success'))
@@ -763,6 +803,37 @@
                     localStorage.setItem('sidebar_collapsed', isCollapsed ? 'true' : 'false');
                 });
             }
+
+            // Real-time System Clock (WIB - Asia/Jakarta)
+            function updateRealtimeClock() {
+                const now = new Date();
+                const clockEl = document.getElementById('realtimeSystemClock');
+                const dateEl = document.getElementById('realtimeSystemDate');
+                
+                if (clockEl) {
+                    const timeStr = now.toLocaleTimeString('id-ID', {
+                        timeZone: 'Asia/Jakarta',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                    }).replace(/\./g, ':');
+                    clockEl.textContent = timeStr + ' WIB';
+                }
+                
+                if (dateEl) {
+                    const dateStr = now.toLocaleDateString('id-ID', {
+                        timeZone: 'Asia/Jakarta',
+                        weekday: 'long',
+                        day: 'numeric',
+                        month: 'long',
+                        year: 'numeric'
+                    });
+                    dateEl.textContent = dateStr;
+                }
+            }
+            setInterval(updateRealtimeClock, 1000);
+            updateRealtimeClock();
         });
     </script>
     @yield('scripts')

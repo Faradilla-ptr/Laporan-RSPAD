@@ -86,27 +86,6 @@
         border: 1px solid rgba(255, 255, 255, 0.35);
     }
 
-    .feature-list-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        margin-bottom: 1rem;
-        font-size: 0.9rem;
-        color: #ffffff !important;
-        font-weight: 500;
-    }
-
-    .feature-icon-box {
-        width: 34px;
-        height: 34px;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.22);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #ffffff !important;
-        flex-shrink: 0;
-    }
 
     /* Right Form Area */
     .auth-form-area {
@@ -198,32 +177,24 @@
                     </div>
                 </div>
 
-                <div class="mb-4">
-                    <span class="hero-badge-pill mb-3">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg> Pendaftaran Akun Pengguna
+                <div class="my-auto py-3">
+                    <span class="hero-badge-pill mb-3" style="font-size: 0.9rem; padding: 8px 18px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="17"></line></svg> Pendaftaran Akun Pengguna
                     </span>
-                    <h4 class="fw-bold text-white lh-base mb-2">Registrasi Petugas & Pengelola Pelaporan</h4>
-                    <p class="text-white small mb-0 opacity-90">Daftarkan akun baru untuk mengelola dan memantau pelaporan kunjungan pasien rawat jalan.</p>
+                    <h2 class="fw-bold text-white lh-sm mb-3 fs-2">Registrasi Petugas Pelaporan Medis</h2>
+                    <p class="text-white fs-6 mb-4 opacity-90 lh-base">Daftarkan akun baru untuk mengelola, mengunggah, dan memantau rekapitulasi pelaporan kunjungan pasien rawat jalan SIMRS RSPAD Gatot Soebroto.</p>
+                    
+                    <div class="p-3.5 rounded-3 border border-white border-opacity-25" style="background: rgba(255,255,255,0.08);">
+                        <div class="d-flex align-items-center gap-2 text-white fw-bold mb-1 fs-6">
+                            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg> Validasi & Keamanan Akun
+                        </div>
+                        <p class="text-white extra-small mb-0 opacity-85">Setiap pendaftaran akun Petugas akan melalui tahap pengesahan oleh Admin (Kaur). Kata sandi login default akan dikirim secara otomatis via Email setelah disetujui.</p>
+                    </div>
                 </div>
             </div>
 
-            <div class="mt-4">
-                <div class="feature-list-item">
-                    <div class="feature-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg></div>
-                    <span>Peran Petugas Input atau Admin Sistem</span>
-                </div>
-                <div class="feature-list-item">
-                    <div class="feature-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg></div>
-                    <span>Enkripsi Kata Sandi Standar Keamanan RSPAD</span>
-                </div>
-                <div class="feature-list-item">
-                    <div class="feature-icon-box"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg></div>
-                    <span>Akses Langsung ke Dashboard & Fitur Ekspor</span>
-                </div>
-            </div>
-
-            <div class="pt-4 border-top border-white border-opacity-20 text-white extra-small opacity-90">
-                &copy; {{ date('Y') }} Subdit Pelaporan Medis RSPAD Gatot Soebroto.
+            <div class="pt-3 border-top border-white border-opacity-20 text-white extra-small opacity-75">
+                Subdit Pelaporan Medis RSPAD Gatot Soebroto &copy; {{ date('Y') }}
             </div>
         </div>
 
@@ -237,9 +208,9 @@
                 <p class="text-muted small">Registrasi Akun Baru</p>
             </div>
 
-            <div class="mb-3">
-                <h4 class="fw-bold text-dark mb-1">Daftar Akun Baru</h4>
-                <p class="text-muted small mb-0">Lengkapi formulir di bawah ini untuk membuat akun baru.</p>
+            <div class="mb-4">
+                <h3 class="fw-bold text-dark mb-1">Daftar Akun Baru</h3>
+                <p class="text-muted small mb-0">Lengkapi formulir nama dan email Anda untuk pengajuan akun Petugas.</p>
             </div>
 
             @if($errors->any())
@@ -252,7 +223,7 @@
                 @csrf
 
                 <!-- Nama Lengkap -->
-                <div class="mb-2.5">
+                <div class="mb-3">
                     <label for="name" class="form-label fw-semibold small text-secondary mb-1">Nama Lengkap</label>
                     <div class="position-relative">
                         <input type="text" class="form-control form-control-rspad ps-5 @error('name') is-invalid @enderror" 
@@ -263,28 +234,26 @@
                 </div>
 
                 <!-- Email Input -->
-                <div class="mb-2.5">
-                    <label for="email" class="form-label fw-semibold small text-secondary mb-1">Alamat Email</label>
+                <div class="mb-3">
+                    <label for="email" class="form-label fw-semibold small text-secondary mb-1">Alamat Email Aktif</label>
                     <div class="position-relative">
                         <input type="email" class="form-control form-control-rspad ps-5 @error('email') is-invalid @enderror" 
                                id="email" name="email" value="{{ old('email') }}" 
                                placeholder="nama@rspad.go.id" required>
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted position-absolute start-0 top-50 translate-middle-y ms-3"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
                     </div>
+                    <span class="text-muted extra-small d-block mt-1"><i class="bi bi-info-circle me-1"></i>Notifikasi persetujuan dan kata sandi login akan dikirim ke email ini.</span>
                 </div>
 
                 <!-- Peran / Jabatan & NIP/NRP -->
-                <div class="row g-2 mb-2.5">
+                <div class="row g-2 mb-4">
                     <div class="col-md-6">
-                        <label for="role" class="form-label fw-semibold small text-secondary mb-1">Peran Akses</label>
+                        <label class="form-label fw-semibold small text-secondary mb-1">Peran Akses</label>
                         <div class="position-relative">
-                            <select class="form-select form-control-rspad ps-5 @error('role') is-invalid @enderror" id="role" name="role" required>
-                                <option value="petugas" {{ old('role') === 'petugas' ? 'selected' : '' }}>Petugas Input (Perlu Validasi Admin)</option>
-                                <option value="admin" {{ old('role') === 'admin' ? 'selected' : '' }}>Admin Sistem (Kaur)</option>
-                            </select>
+                            <input type="text" class="form-control form-control-rspad ps-5 bg-light" value="Petugas Input" readonly style="cursor: not-allowed;">
+                            <input type="hidden" name="role" value="petugas">
                             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted position-absolute start-0 top-50 translate-middle-y ms-3"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle></svg>
                         </div>
-                        <span class="text-muted extra-small d-block mt-1"><i class="bi bi-shield-lock me-1"></i>Akun Petugas perlu validasi Admin (Kaur) sebelum aktif.</span>
                     </div>
                     <div class="col-md-6">
                         <label for="nip_nrp" class="form-label fw-semibold small text-secondary mb-1">NIP / NRP <span class="fw-normal text-muted">(Opsional)</span></label>
@@ -297,35 +266,9 @@
                     </div>
                 </div>
 
-                <!-- Password Input with Eye Toggle Icon -->
-                <div class="mb-2.5">
-                    <label for="password" class="form-label fw-semibold small text-secondary mb-1">Kata Sandi</label>
-                    <div class="position-relative">
-                        <input type="password" class="form-control form-control-rspad ps-5 pe-5 @error('password') is-invalid @enderror" 
-                               id="password" name="password" placeholder="Minimal 6 karakter" required>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted position-absolute start-0 top-50 translate-middle-y ms-3"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                        <button type="button" class="password-toggle-btn d-flex align-items-center justify-content-center" onclick="togglePassword('password', this)" title="Tampilkan/Sembunyikan Kata Sandi">
-                            <svg id="eyeIconPass" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                        </button>
-                    </div>
-                </div>
-
-                <!-- Konfirmasi Password with Eye Toggle Icon -->
-                <div class="mb-3.5">
-                    <label for="password_confirmation" class="form-label fw-semibold small text-secondary mb-1">Konfirmasi Kata Sandi</label>
-                    <div class="position-relative">
-                        <input type="password" class="form-control form-control-rspad ps-5 pe-5" 
-                               id="password_confirmation" name="password_confirmation" placeholder="Ulangi kata sandi Anda" required>
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="text-muted position-absolute start-0 top-50 translate-middle-y ms-3"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                        <button type="button" class="password-toggle-btn d-flex align-items-center justify-content-center" onclick="togglePassword('password_confirmation', this)" title="Tampilkan/Sembunyikan Kata Sandi">
-                            <svg id="eyeIconConfirm" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>
-                        </button>
-                    </div>
-                </div>
-
                 <!-- Submit Button -->
-                <button type="submit" class="btn btn-rspad-auth w-100 mb-3 mt-2 d-flex align-items-center justify-content-center gap-2">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg> Daftar Akun Baru
+                <button type="submit" class="btn btn-rspad-auth w-100 mb-3 py-2.5 d-flex align-items-center justify-content-center gap-2">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="8.5" cy="7" r="4"></circle><line x1="20" y1="8" x2="20" y2="14"></line><line x1="23" y1="11" x2="17" y2="11"></line></svg> Ajukan Pendaftaran Akun
                 </button>
             </form>
 

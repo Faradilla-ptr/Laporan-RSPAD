@@ -71,7 +71,80 @@
         @endif
     </div>
 
-    <!-- Tab 2: Daftar Akun Terverifikasi -->
+    <!-- Tab 2: Antrean Permohonan Ubah Profil / Password Petugas -->
+    <div class="mb-4 pt-3 border-top">
+        <div class="d-flex align-items-center gap-2 mb-3">
+            <h6 class="fw-bold text-dark mb-0">Antrean Permohonan Perubahan Profil & Password Petugas</h6>
+            <span class="badge bg-info text-dark rounded-pill">{{ isset($pendingProfileRequests) ? count($pendingProfileRequests) : 0 }} Permohonan</span>
+        </div>
+
+        @if(!isset($pendingProfileRequests) || count($pendingProfileRequests) === 0)
+            <div class="alert alert-light border small text-muted d-flex align-items-center gap-2">
+                <i class="bi bi-check-circle"></i> Tidak ada permohonan perubahan profil atau password dari Petugas saat ini.
+            </div>
+        @else
+            <div class="table-responsive">
+                <table class="table table-clean table-bordered align-middle text-nowrap">
+                    <thead class="bg-light">
+                        <tr>
+                            <th style="width: 50px;">No</th>
+                            <th>Nama Petugas</th>
+                            <th>Email Akun</th>
+                            <th>Jenis Permohonan</th>
+                            <th>Data Baru Yang Diajukan</th>
+                            <th>Waktu Pengajuan</th>
+                            <th style="width: 180px;" class="text-center">Aksi Verifikasi</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach($pendingProfileRequests as $pIdx => $pReq)
+                            <tr>
+                                <td class="text-center">{{ $pIdx + 1 }}</td>
+                                <td class="fw-semibold text-dark">{{ $pReq->user->name ?? '-' }}</td>
+                                <td>{{ $pReq->user->email ?? '-' }}</td>
+                                <td>
+                                    <span class="badge bg-light text-dark border fw-bold">
+                                        {{ $pReq->request_type === 'CHANGE_PASSWORD' ? 'Ubah Password' : 'Ubah Data Profil' }}
+                                    </span>
+                                </td>
+                                <td class="small">
+                                    @if($pReq->new_name && $pReq->new_name !== ($pReq->user->name ?? ''))
+                                        <div>Nama: <strong>{{ $pReq->new_name }}</strong></div>
+                                    @endif
+                                    @if($pReq->new_email && $pReq->new_email !== ($pReq->user->email ?? ''))
+                                        <div>Email: <strong>{{ $pReq->new_email }}</strong></div>
+                                    @endif
+                                    @if($pReq->new_password)
+                                        <div class="text-success fw-bold"><i class="bi bi-key-fill me-1"></i>Permohonan Kata Sandi Baru</div>
+                                    @endif
+                                </td>
+                                <td class="small text-muted">{{ $pReq->created_at ? $pReq->created_at->format('d M Y H:i') : '-' }}</td>
+                                <td class="text-center">
+                                    <div class="d-flex justify-content-center gap-1">
+                                        <form action="{{ route('admin.profile_requests.approve', $pReq->id) }}" method="POST" class="d-inline">
+                                            @csrf
+                                            <button type="submit" class="btn btn-sm btn-success py-1 px-3 d-flex align-items-center gap-1">
+                                                <i class="bi bi-check-lg"></i> Setujui
+                                            </button>
+                                        </form>
+                                        <form action="{{ route('admin.profile_requests.reject', $pReq->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tolak permohonan perubahan profil ini?')">
+                                            @csrf
+                                            @method('DELETE')
+                                            <button type="submit" class="btn btn-sm btn-danger py-1 px-2 d-flex align-items-center gap-1">
+                                                <i class="bi bi-x-lg"></i> Tolak
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        @endforeach
+                    </tbody>
+                </table>
+            </div>
+        @endif
+    </div>
+
+    <!-- Tab 3: Daftar Akun Terverifikasi -->
     <div class="mt-4 pt-3 border-top">
         <h6 class="fw-bold text-dark mb-3">Daftar Akun Terverifikasi / Aktif</h6>
         <div class="table-responsive">

@@ -1,8 +1,10 @@
 <?php
 
+use App\Http\Controllers\ActivityLogController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\ImportController;
+use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\ReportPuskesadController;
 use App\Http\Controllers\ReportRL34Controller;
 use App\Http\Controllers\ReportRL35Controller;
@@ -21,6 +23,10 @@ Route::post('/logout', [AuthController::class, 'logout'])->name('logout');
 
 // Protected Routes
 Route::middleware(['auth'])->group(function () {
+    // Shared Profile Routes (Admin & Petugas)
+    Route::get('/profile', [ProfileController::class, 'index'])->name('profile.index');
+    Route::put('/profile', [ProfileController::class, 'update'])->name('profile.update');
+
     // Dynamic Role-based Redirects for base URLs
     $getRolePath = function ($path = 'dashboard') {
         $role = (Auth::check() && Auth::user()->role === 'admin') ? 'admin' : 'petugas';
@@ -79,10 +85,15 @@ Route::middleware(['auth'])->group(function () {
         });
     }
 
-    // Admin Only User Validation Routes
+    // Admin Only User Validation & Activity Log Routes
     Route::prefix('admin')->name('admin.')->group(function () {
         Route::get('/users', [UserController::class, 'index'])->name('users.index');
         Route::post('/users/{user}/approve', [UserController::class, 'approve'])->name('users.approve');
         Route::delete('/users/{user}/reject', [UserController::class, 'reject'])->name('users.reject');
+
+        Route::post('/profile-requests/{id}/approve', [UserController::class, 'approveProfileRequest'])->name('profile_requests.approve');
+        Route::delete('/profile-requests/{id}/reject', [UserController::class, 'rejectProfileRequest'])->name('profile_requests.reject');
+
+        Route::get('/activity-logs', [ActivityLogController::class, 'index'])->name('activity_logs.index');
     });
 });

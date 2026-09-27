@@ -136,7 +136,7 @@
                     </select>
                 </div>
             </div>
-            <div class="flex-grow-1 position-relative" style="min-height: 310px;">
+            <div class="flex-grow-1 position-relative" style="height: 270px; min-height: 250px;">
                 @if(count($dailyTrend) > 0)
                     <canvas id="trendChart"></canvas>
                 @else
@@ -157,11 +157,35 @@
                     <span class="text-muted small">Distribusi kepesertaan Militer, PNS, BPJS & Umum</span>
                 </div>
             </div>
-            <div class="flex-grow-1 position-relative d-flex align-items-center justify-content-center" style="min-height: 310px;">
+            <div class="flex-grow-1 position-relative d-flex flex-column align-items-center justify-content-between">
                 @if(count($kelompokBreakdown) > 0)
-                    <canvas id="kelompokChart"></canvas>
+                    <div style="position: relative; width: 100%; height: 155px;" class="my-1">
+                        <canvas id="kelompokChart"></canvas>
+                    </div>
+                    <div class="w-100 border-top pt-2 mt-auto">
+                        <div style="max-height: 115px; overflow-y: auto; padding-right: 2px;">
+                            <div class="row row-cols-2 g-1.5">
+                                @foreach($kelompokBreakdown as $idx => $kb)
+                                @php
+                                    $paletteColors = ['#2A6A2A', '#3B8A3B', '#5DAA5D', '#8CCB8C', '#0288D1', '#7c3aed', '#f59e0b', '#06b6d4', '#ec4899', '#64748b'];
+                                    $color = $paletteColors[$idx % count($paletteColors)];
+                                    $pct = $totalKunjungan > 0 ? number_format(($kb->total_kunjungan / $totalKunjungan) * 100, 1) : 0;
+                                @endphp
+                                <div class="col">
+                                    <div class="d-flex align-items-center justify-content-between px-2 py-1 rounded" style="background-color: #f8fafc; gap: 6px;">
+                                        <div class="d-flex align-items-center text-truncate gap-2" style="min-width: 0;">
+                                            <span class="rounded-circle flex-shrink-0" style="width: 8px; height: 8px; background-color: {{ $color }}; display: inline-block;"></span>
+                                            <span class="fw-semibold text-dark text-truncate" style="font-size: 0.74rem;" title="{{ $kb->kelompok }}">{{ $kb->kelompok }}</span>
+                                        </div>
+                                        <span class="text-muted fw-bold flex-shrink-0" style="font-size: 0.72rem;">{{ number_format($kb->total_kunjungan) }} <small class="text-secondary fw-normal">({{ $pct }}%)</small></span>
+                                    </div>
+                                </div>
+                                @endforeach
+                            </div>
+                        </div>
+                    </div>
                 @else
-                    <div class="text-muted">
+                    <div class="text-muted my-auto">
                         <i class="bi bi-info-circle me-2"></i> Belum ada data kelompok.
                     </div>
                 @endif
@@ -503,15 +527,7 @@
                     maintainAspectRatio: false,
                     cutout: '70%',
                     plugins: {
-                        legend: {
-                            position: 'bottom',
-                            labels: {
-                                boxWidth: 12,
-                                boxHeight: 12,
-                                font: { size: 11, weight: '500' },
-                                padding: 12
-                            }
-                        },
+                        legend: { display: false },
                         tooltip: {
                             backgroundColor: 'rgba(15, 23, 42, 0.9)',
                             padding: 12,

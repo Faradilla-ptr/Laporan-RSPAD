@@ -3,9 +3,11 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Hash;
+use Illuminate\Support\Str;
 
 class AuthController extends Controller
 {
@@ -44,6 +46,8 @@ class AuthController extends Controller
 
             $request->session()->regenerate();
 
+            ActivityLogger::log('LOGIN', 'User '.$user->name.' ('.$user->role.') berhasil masuk ke sistem.');
+
             $role = $user->role === 'admin' ? 'admin' : 'petugas';
 
             return redirect()->intended(route("{$role}.dashboard"))
@@ -69,43 +73,34 @@ class AuthController extends Controller
         $validated = $request->validate([
             'name' => 'required|string|max:255',
             'email' => 'required|string|email|max:255|unique:users',
-            'password' => 'required|string|min:6|confirmed',
-            'role' => 'required|in:petugas,admin',
             'nip_nrp' => 'nullable|string|max:100',
         ], [
             'name.required' => 'Nama lengkap wajib diisi.',
             'email.required' => 'Alamat email wajib diisi.',
             'email.unique' => 'Alamat email ini sudah terdaftar.',
-            'password.required' => 'Kata sandi wajib diisi.',
-            'password.min' => 'Kata sandi minimal 6 karakter.',
-            'password.confirmed' => 'Konfirmasi kata sandi tidak cocok.',
-            'role.required' => 'Peran/jabatan wajib dipilih.',
         ]);
-
-        $isApproved = ($validated['role'] === 'admin');
 
         $user = User::create([
             'name' => $validated['name'],
             'email' => $validated['email'],
-            'password' => Hash::make($validated['password']),
-            'role' => $validated['role'],
-            'is_approved' => $isApproved,
+            'password' => Hash::make(Str::random(16)),
+            'role' => 'petugas',
+            'is_approved' => false,
             'nip_nrp' => $validated['nip_nrp'] ?? null,
         ]);
 
-        if (! $isApproved) {
-            return redirect()->route('login')
-                ->with('success', 'Pendaftaran berhasil! Akun Petugas Anda membutuhkan persetujuan/validasi dari Admin (Kaur) sebelum dapat digunakan untuk login.');
-        }
+        ActivityLogger::log('REGISTRASI_AKUN', 'Pengajuan pendaftaran akun Petugas baru: '.$user->name.' ('.$user->email.').');
 
-        Auth::login($user);
-
-        return redirect()->route('admin.dashboard')
-            ->with('success', 'Registrasi berhasil! Selamat datang di Sistem Informasi Pelaporan RSPAD Gatot Soebroto.');
+        return redirect()->route('login')
+            ->with('success', 'Pendaftaran berhasil diajukan! Akun Petugas Anda membutuhkan persetujuan/validasi dari Admin (Kaur). Kata sandi login default akan dikirimkan secara otomatis via email setelah disetujui.');
     }
 
     public function logout(Request $request)
     {
+        if (Auth::check()) {
+            ActivityLogger::log('LOGOUT', 'User '.Auth::user()->name.' keluar dari sistem.');
+        }
+
         Auth::logout();
         $request->session()->invalidate();
         $request->session()->regenerateToken();

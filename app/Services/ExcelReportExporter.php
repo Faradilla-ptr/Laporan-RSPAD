@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Http\Controllers\ReportRL35Controller;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -1273,6 +1274,20 @@ class ExcelReportExporter
             'alignment' => ['horizontal' => Alignment::HORIZONTAL_CENTER, 'vertical' => Alignment::VERTICAL_CENTER, 'wrapText' => true],
         ]);
 
+        $stdList = ReportRL35Controller::getStandardPoliList();
+        $poliDataMap = [];
+        foreach ($stdList as $num => $stdName) {
+            $poliDataMap[$stdName] = [
+                'no' => (int) $num,
+                'poliklinik' => $stdName,
+                'dalam_l' => 0,
+                'dalam_p' => 0,
+                'luar_l' => 0,
+                'luar_p' => 0,
+                'total' => 0,
+            ];
+        }
+
         $poliDataRaw = (clone $query)
             ->reorder()
             ->select(
@@ -1284,17 +1299,39 @@ class ExcelReportExporter
                 DB::raw('COUNT(*) as total')
             )
             ->groupBy('poliklinik')
-            ->orderByDesc('total')
             ->get();
 
+        foreach ($poliDataRaw as $row) {
+            $stdName = ReportRL35Controller::normalizePoliToStandard($row->poliklinik);
+            if (! isset($poliDataMap[$stdName])) {
+                $stdName = 'Lain-Lain';
+            }
+            $poliDataMap[$stdName]['dalam_l'] += (int) $row->dalam_l;
+            $poliDataMap[$stdName]['dalam_p'] += (int) $row->dalam_p;
+            $poliDataMap[$stdName]['luar_l'] += (int) $row->luar_l;
+            $poliDataMap[$stdName]['luar_p'] += (int) $row->luar_p;
+            $poliDataMap[$stdName]['total'] += (int) $row->total;
+        }
+
+        if ($poli && $poli !== 'SEMUA') {
+            $matchedStd = ReportRL35Controller::normalizePoliToStandard($poli);
+            $filteredPoliMap = [];
+            foreach ($poliDataMap as $kName => $val) {
+                if (strcasecmp($kName, $matchedStd) === 0 || strcasecmp($kName, $poli) === 0) {
+                    $filteredPoliMap[$kName] = $val;
+                }
+            }
+            $poliDataMap = $filteredPoliMap;
+        }
+
         $rS = 6;
-        foreach ($poliDataRaw as $idx => $row) {
-            $sheetSummary->setCellValue("A{$rS}", $idx + 1);
-            $sheetSummary->setCellValue("B{$rS}", $row->poliklinik ?: 'LAIN-LAIN');
-            $sheetSummary->setCellValue("C{$rS}", $row->dalam_l);
-            $sheetSummary->setCellValue("D{$rS}", $row->dalam_p);
-            $sheetSummary->setCellValue("E{$rS}", $row->luar_l);
-            $sheetSummary->setCellValue("F{$rS}", $row->luar_p);
+        foreach ($poliDataMap as $pRow) {
+            $sheetSummary->setCellValue("A{$rS}", $pRow['no']);
+            $sheetSummary->setCellValue("B{$rS}", $pRow['poliklinik']);
+            $sheetSummary->setCellValue("C{$rS}", $pRow['dalam_l']);
+            $sheetSummary->setCellValue("D{$rS}", $pRow['dalam_p']);
+            $sheetSummary->setCellValue("E{$rS}", $pRow['luar_l']);
+            $sheetSummary->setCellValue("F{$rS}", $pRow['luar_p']);
             $sheetSummary->setCellValue("G{$rS}", "=SUM(C{$rS}:F{$rS})");
             $rS++;
         }

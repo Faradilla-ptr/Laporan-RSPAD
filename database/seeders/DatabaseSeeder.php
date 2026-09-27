@@ -18,7 +18,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'admin@rspad.go.id'],
             [
                 'name' => 'Admin Pelaporan RSPAD',
-                'password' => Hash::make('password123'),
+                'password' => Hash::make('admin_rspad123'),
                 'role' => 'admin',
                 'is_approved' => true,
                 'nip_nrp' => '198501012010121001',
@@ -29,7 +29,7 @@ class DatabaseSeeder extends Seeder
             ['email' => 'petugas@rspad.go.id'],
             [
                 'name' => 'Petugas Pelaporan (Fara)',
-                'password' => Hash::make('password123'),
+                'password' => Hash::make('petugas_rspad123'),
                 'role' => 'petugas',
                 'is_approved' => true,
                 'nip_nrp' => '199203152018012002',
@@ -134,7 +134,7 @@ class DatabaseSeeder extends Seeder
                     RawVisit::create([
                         'import_log_id' => $importLog->id,
                         'no_rm' => $noRm,
-                        'nama_pasien' => $namaPasien ?: 'PASIEN UNKNOWN',
+                        'nama_pasien' => 'PASIEN ANONYMIZED',
                         'tgl_lahir' => $tglLahir,
                         'umur' => $umur,
                         'no_telp' => $noTelp,

@@ -186,7 +186,7 @@ class ImportController extends Controller
                 $fileRows[] = [
                     'import_log_id' => $importLog->id,
                     'no_rm' => $noRm,
-                    'nama_pasien' => $namaPasien ?: 'PASIEN UNKNOWN',
+                    'nama_pasien' => 'PASIEN ANONYMIZED',
                     'tgl_lahir' => $tglLahir,
                     'umur' => $umur,
                     'no_telp' => $noTelp,

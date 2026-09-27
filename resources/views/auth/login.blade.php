@@ -231,38 +231,17 @@
                     </div>
                 </div>
 
-                <div class="mb-4">
-                    <span class="hero-badge-pill mb-3">
-                        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg> Portal Pelaporan Resmi
+                <div class="my-auto py-3">
+                    <span class="hero-badge-pill mb-3" style="font-size: 0.9rem; padding: 8px 18px;">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg> Portal Pelaporan Resmi
                     </span>
-                    <h4 class="fw-bold text-white lh-base mb-2">Sistem Rekapitulasi Pelaporan Rawat Jalan</h4>
-                    <p class="text-white small mb-0 opacity-90">Integrasi data kunjungan pasien rawat jalan SIMRS RSPAD Gatot Soebroto dan Laporan Puskesad.</p>
+                    <h2 class="fw-bold text-white lh-sm mb-3 fs-2">Sistem Rekapitulasi Pelaporan SIMRS</h2>
+                    <p class="text-white fs-6 mb-4 opacity-90 lh-base">Integrasi data rekapitulasi kunjungan pasien rawat jalan SIMRS RSPAD Gatot Soebroto dan Laporan Puskesad.</p>
                 </div>
             </div>
 
-            <div class="mt-4">
-                <div class="feature-list-item">
-                    <div class="feature-icon-box">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="8" y1="13" x2="16" y2="17"></line><line x1="16" y1="13" x2="8" y2="17"></line></svg>
-                    </div>
-                    <span>Ekspor Excel 31 Kolom Sesuai Standardisasi Form</span>
-                </div>
-                <div class="feature-list-item">
-                    <div class="feature-icon-box">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21.21 15.89A10 10 0 1 1 8 2.83"></path><path d="M22 12A10 10 0 0 0 12 2v10z"></path></svg>
-                    </div>
-                    <span>Klasifikasi Otomatis Kelompok TNI AD & Umum</span>
-                </div>
-                <div class="feature-list-item">
-                    <div class="feature-icon-box">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-                    </div>
-                    <span>Akses Berbasis Peran (Petugas & Admin)</span>
-                </div>
-            </div>
-
-            <div class="pt-4 border-top border-white border-opacity-20 text-white extra-small opacity-90">
-                &copy; {{ date('Y') }} Subdit Pelaporan Medis RSPAD Gatot Soebroto.
+            <div class="pt-3 border-top border-white border-opacity-20 text-white extra-small opacity-75">
+                Subdit Pelaporan Medis RSPAD Gatot Soebroto &copy; {{ date('Y') }}
             </div>
         </div>
 
@@ -337,24 +316,9 @@
             </form>
 
             <!-- Register Link -->
-            <div class="text-center mb-4">
+            <div class="text-center">
                 <span class="text-muted small">Belum memiliki akun? </span>
                 <a href="{{ route('register') }}" class="fw-semibold text-decoration-none" style="color: #2E5A3C;">Daftar Akun Baru</a>
-            </div>
-
-            <!-- Quick Demo Credentials Selector -->
-            <div class="demo-credentials-box">
-                <div class="fw-bold text-dark mb-2 d-flex align-items-center justify-content-between">
-                    <span class="d-flex align-items-center gap-1"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="color: #d97706;"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg> Akun Akses Uji Coba:</span>
-                    <span class="text-muted extra-small">Klik untuk isi otomatis</span>
-                </div>
-                <div class="d-flex flex-wrap gap-1 mb-2">
-                    <button type="button" class="demo-chip" onclick="fillDemo('petugas@rspad.go.id', 'password123')">Petugas</button>
-                    <button type="button" class="demo-chip" onclick="fillDemo('admin@rspad.go.id', 'password123')">Admin</button>
-                </div>
-                <div class="text-muted" style="font-size: 0.75rem;">
-                    Password default: <code class="bg-white px-1 border rounded">password123</code>
-                </div>
             </div>
 
         </div>

@@ -84,7 +84,7 @@
             <tbody>
                 @forelse($poliData as $idx => $p)
                 <tr>
-                    <td class="text-center">{{ $idx + 1 }}</td>
+                    <td class="text-center">{{ $p['no'] ?? ($idx + 1) }}</td>
                     <td class="text-center">
                         <div class="d-flex gap-1 justify-content-center">
                             <button class="btn btn-sm text-white px-2 py-0" style="background-color: #f87171; font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#deletePoliModal{{ $idx }}">Hapus</button>

@@ -76,17 +76,51 @@ class DashboardController extends Controller
             ->limit(10)
             ->get();
 
-        // Daily Trend (For Line Chart)
-        $dailyTrend = (clone $query)
-            ->select(
-                DB::raw('DATE(tgl_berobat) as date'),
-                DB::raw('count(*) as total_kunjungan'),
-                DB::raw('count(distinct no_rm) as total_pengunjung')
-            )
-            ->whereNotNull('tgl_berobat')
-            ->groupBy(DB::raw('DATE(tgl_berobat)'))
-            ->orderBy('date', 'asc')
-            ->get();
+        // Daily / Monthly Trend (For Line Chart)
+        if ($month === 'SEMUA') {
+            $monthExpr = DB::connection()->getDriverName() === 'sqlite'
+                ? "CAST(strftime('%m', tgl_berobat) AS INTEGER)"
+                : 'MONTH(tgl_berobat)';
+
+            $monthlyQuery = (clone $query)
+                ->select(
+                    DB::raw("{$monthExpr} as m_num"),
+                    DB::raw('count(*) as total_kunjungan'),
+                    DB::raw('count(distinct no_rm) as total_pengunjung')
+                )
+                ->whereNotNull('tgl_berobat')
+                ->groupBy(DB::raw($monthExpr))
+                ->orderBy('m_num', 'asc')
+                ->get()
+                ->keyBy('m_num');
+
+            $monthNames = [
+                1 => 'Januari', 2 => 'Februari', 3 => 'Maret', 4 => 'April',
+                5 => 'Mei', 6 => 'Juni', 7 => 'Juli', 8 => 'Agustus',
+                9 => 'September', 10 => 'Oktober', 11 => 'November', 12 => 'Desember',
+            ];
+
+            $dailyTrend = collect();
+            foreach ($monthNames as $num => $name) {
+                $row = $monthlyQuery->get($num);
+                $dailyTrend->push((object) [
+                    'date' => $name,
+                    'total_kunjungan' => $row ? (int) $row->total_kunjungan : 0,
+                    'total_pengunjung' => $row ? (int) $row->total_pengunjung : 0,
+                ]);
+            }
+        } else {
+            $dailyTrend = (clone $query)
+                ->select(
+                    DB::raw('DATE(tgl_berobat) as date'),
+                    DB::raw('count(*) as total_kunjungan'),
+                    DB::raw('count(distinct no_rm) as total_pengunjung')
+                )
+                ->whereNotNull('tgl_berobat')
+                ->groupBy(DB::raw('DATE(tgl_berobat)'))
+                ->orderBy('date', 'asc')
+                ->get();
+        }
 
         $recentImports = ImportLog::with('user')->latest()->limit(5)->get();
 
