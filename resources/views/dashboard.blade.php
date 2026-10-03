@@ -60,7 +60,7 @@
             </div>
             <div>
                 <div class="metric-value mb-1">{{ number_format($totalKunjungan) }}</div>
-                <p class="metric-desc text-muted"><i class="bi bi-info-circle me-1"></i>Total transaksi kontak registrasi</p>
+                <p class="metric-desc text-muted"><i class="bi bi-info-circle me-1"></i>Total Seluruh Kunjungan Saat Ini</p>
             </div>
         </div>
     </div>
@@ -76,7 +76,7 @@
             </div>
             <div>
                 <div class="metric-value mb-1" style="color: #3B8A3B !important;">{{ number_format($totalPengunjung) }}</div>
-                <p class="metric-desc text-muted"><i class="bi bi-person-check me-1"></i>Pasien Unik (Count Distinct RM)</p>
+                <p class="metric-desc text-muted"><i class="bi bi-person-check me-1"></i>Total Seluruh Pengunjung Saat Ini</p>
             </div>
         </div>
     </div>
@@ -93,7 +93,7 @@
             <div>
                 <div class="metric-value mb-1" style="color: #0288D1 !important;">{{ number_format($pengunjungBaru) }}</div>
                 <p class="metric-desc text-muted">
-                    <span class="fw-semibold text-dark">{{ $totalPengunjung > 0 ? number_format(($pengunjungBaru / $totalPengunjung) * 100, 1) : 0 }}%</span> dari total pengunjung unik
+                    <span class="fw-semibold text-dark">{{ $totalPengunjung > 0 ? number_format(($pengunjungBaru / $totalPengunjung) * 100, 1) : 0 }}%</span> dari total pengunjung
                 </p>
             </div>
         </div>
@@ -111,7 +111,7 @@
             <div>
                 <div class="metric-value mb-1" style="color: #7c3aed !important;">{{ number_format($pengunjungLama) }}</div>
                 <p class="metric-desc text-muted">
-                    <span class="fw-semibold text-dark">{{ $totalPengunjung > 0 ? number_format(($pengunjungLama / $totalPengunjung) * 100, 1) : 0 }}%</span> pasien berobat ulangan
+                    <span class="fw-semibold text-dark">{{ $totalPengunjung > 0 ? number_format(($pengunjungLama / $totalPengunjung) * 100, 1) : 0 }}%</span> Pengunjung Lama
                 </p>
             </div>
         </div>
@@ -125,8 +125,8 @@
         <div class="card-panel p-4 h-100 d-flex flex-column">
             <div class="d-flex flex-wrap justify-content-between align-items-center mb-3 border-bottom pb-2 gap-2">
                 <div>
-                    <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-graph-up-arrow me-2" style="color: var(--palette-5);"></i>Grafik Tren Kunjungan vs Pengunjung</h6>
-                    <span class="text-muted small">Perbandingan total kontak registrasi vs pasien unik per hari</span>
+                    <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-graph-up-arrow me-2" style="color: var(--palette-5);"></i>Grafik Tren Kunjungan dan Pengunjung</h6>
+                    <span class="text-muted small"></span>
                 </div>
                 <div class="d-flex align-items-center gap-2">
                     <select id="chartFilterSelect" class="form-select form-select-sm shadow-sm border-secondary-subtle" style="font-size: 0.8rem; font-weight: 600;">
@@ -154,7 +154,7 @@
             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                 <div>
                     <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-pie-chart-fill me-2" style="color: var(--palette-5);"></i>Proporsi Kelompok Pasien</h6>
-                    <span class="text-muted small">Distribusi kepesertaan Militer, PNS, BPJS & Umum</span>
+                    <span class="text-muted small"></span>
                 </div>
             </div>
             <div class="flex-grow-1 position-relative d-flex flex-column align-items-center justify-content-between">
@@ -201,7 +201,7 @@
         <div class="card-panel p-4 h-100 d-flex flex-column">
             <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
                 <div>
-                    <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-bar-chart-line-fill me-2" style="color: var(--palette-5);"></i>10 Poliklinik Teramai</h6>
+                    <h6 class="fw-bold mb-0 text-dark"><i class="bi bi-bar-chart-line-fill me-2" style="color: var(--palette-5);"></i>10 Poliklinik Terbanyak</h6>
                     <span class="text-muted small">Poliklinik dengan total kunjungan tertinggi</span>
                 </div>
                 <span class="badge bg-light text-dark border">Berdasarkan Total Kunjungan</span>

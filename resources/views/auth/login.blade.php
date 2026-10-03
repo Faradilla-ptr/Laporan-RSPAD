@@ -1,6 +1,6 @@
 @extends('layouts.app')
 
-@section('title', 'Masuk Akun')
+@section('title', 'Masuk Akun - SIMRS RSPAD')
 
 @section('content')
 <style>
@@ -9,56 +9,27 @@
         display: flex;
         align-items: center;
         justify-content: center;
-        background: #ffffff;
+        background: #f1f5f9;
         padding: 2rem 1rem;
-        position: relative;
-        overflow: hidden;
-    }
-
-    /* Ambient Decorative Elements */
-    .auth-page-wrapper::before {
-        content: '';
-        position: absolute;
-        width: 450px;
-        height: 450px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(91, 118, 83, 0.05) 0%, rgba(255, 255, 255, 0) 70%);
-        top: -100px;
-        left: -100px;
-        pointer-events: none;
-    }
-
-    .auth-page-wrapper::after {
-        content: '';
-        position: absolute;
-        width: 500px;
-        height: 500px;
-        border-radius: 50%;
-        background: radial-gradient(circle, rgba(91, 118, 83, 0.04) 0%, rgba(255, 255, 255, 0) 70%);
-        bottom: -150px;
-        right: -100px;
-        pointer-events: none;
     }
 
     .auth-card-container {
         background: #ffffff;
-        border-radius: 16px;
-        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+        border-radius: 18px;
+        box-shadow: 0 12px 35px -8px rgba(15, 23, 42, 0.12);
         overflow: hidden;
         width: 100%;
-        max-width: 960px;
+        max-width: 940px;
         display: flex;
-        position: relative;
-        z-index: 10;
         border: 1px solid #e2e8f0;
     }
 
-    /* Left Hero Banner (Desktop) */
+    /* Left Hero Banner */
     .auth-hero-banner {
-        flex: 1;
-        background: linear-gradient(145deg, #23422E 0%, #2E5A3C 100%);
+        flex: 1.1;
+        background: linear-gradient(160deg, #1f3b28 0%, #2b5438 100%);
         color: #ffffff;
-        padding: 3rem 2.5rem;
+        padding: 3rem 2.8rem;
         display: flex;
         flex-direction: column;
         justify-content: space-between;
@@ -66,60 +37,51 @@
         overflow: hidden;
     }
 
-    .auth-hero-banner::before {
-        content: '';
+    /* Watermark halus di background agar tidak kosong */
+    .hero-watermark {
         position: absolute;
-        top: 0; right: 0; bottom: 0; left: 0;
-        background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.12), transparent 60%);
+        right: -30px;
+        bottom: -30px;
+        width: 240px;
+        height: auto;
+        opacity: 0.07;
         pointer-events: none;
     }
 
     .brand-hero-logo {
-        height: 64px;
+        height: 52px;
         width: auto;
-        filter: drop-shadow(0 4px 8px rgba(0,0,0,0.3));
     }
 
-    .hero-badge-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        background: rgba(255, 255, 255, 0.2);
-        backdrop-filter: blur(8px);
-        padding: 6px 14px;
-        border-radius: 50px;
-        font-size: 0.8rem;
+    .hero-tag {
+        display: inline-block;
+        font-size: 0.75rem;
+        letter-spacing: 0.14em;
+        text-transform: uppercase;
         font-weight: 700;
-        color: #ffffff !important;
-        border: 1px solid rgba(255, 255, 255, 0.35);
+        color: #86efac;
+        margin-bottom: 0.75rem;
     }
 
-    .feature-list-item {
-        display: flex;
-        align-items: center;
-        gap: 12px;
+    .hero-headline {
+        font-size: 1.75rem;
+        font-weight: 700;
+        line-height: 1.35;
+        color: #ffffff;
         margin-bottom: 1rem;
-        font-size: 0.9rem;
-        color: #ffffff !important;
-        font-weight: 500;
     }
 
-    .feature-icon-box {
-        width: 34px;
-        height: 34px;
-        border-radius: 8px;
-        background: rgba(255, 255, 255, 0.22);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        color: #ffffff !important;
-        flex-shrink: 0;
+    .hero-desc {
+        color: rgba(255, 255, 255, 0.8);
+        font-size: 0.9rem;
+        line-height: 1.6;
+        margin-bottom: 0;
     }
 
     /* Right Form Area */
     .auth-form-area {
-        width: 480px;
-        padding: 3rem 2.5rem;
+        width: 450px;
+        padding: 3.2rem 2.8rem;
         display: flex;
         flex-direction: column;
         justify-content: center;
@@ -135,21 +97,21 @@
             padding: 2.5rem 1.75rem;
         }
         .auth-card-container {
-            max-width: 460px;
+            max-width: 440px;
         }
     }
 
     .form-control-rspad {
         border: 1.5px solid #cbd5e1;
-        border-radius: 10px;
-        padding: 0.7rem 0.9rem;
+        border-radius: 9px;
+        padding: 0.68rem 0.9rem;
         font-size: 0.9rem;
         transition: all 0.2s ease;
     }
 
     .form-control-rspad:focus {
-        border-color: #2E5A3C;
-        box-shadow: 0 0 0 4px rgba(46, 90, 60, 0.15);
+        border-color: #2b5438;
+        box-shadow: 0 0 0 3.5px rgba(43, 84, 56, 0.15);
         outline: none;
     }
 
@@ -160,7 +122,7 @@
         transform: translateY(-50%);
         background: transparent;
         border: none;
-        color: #565c59;
+        color: #94a3b8;
         cursor: pointer;
         padding: 4px 6px;
         border-radius: 4px;
@@ -169,79 +131,58 @@
     }
 
     .password-toggle-btn:hover {
-        color: #2E5A3C;
+        color: #2b5438;
     }
 
     .btn-rspad-auth {
-        background: linear-gradient(135deg, #2E5A3C 0%, #3B6E4A 100%);
+        background: #2b5438;
         color: #ffffff !important;
         font-weight: 600;
-        padding: 0.75rem;
-        border-radius: 10px;
+        padding: 0.72rem;
+        border-radius: 9px;
         border: none;
-        font-size: 0.95rem;
-        box-shadow: 0 4px 12px rgba(46, 90, 60, 0.25);
+        font-size: 0.92rem;
         transition: all 0.2s ease;
     }
 
     .btn-rspad-auth:hover {
-        background: linear-gradient(135deg, #23422E 0%, #2E5A3C 100%);
-        box-shadow: 0 6px 16px rgba(46, 90, 60, 0.35);
-        color: #ffffff !important;
+        background: #21412c;
         transform: translateY(-1px);
-    }
-
-    .demo-credentials-box {
-        background: #F8FAFC;
-        border: 1px solid #E2E8F0;
-        border-radius: 10px;
-        padding: 1rem;
-        font-size: 0.8rem;
-    }
-
-    .demo-chip {
-        display: inline-block;
-        background: #E2E8F0;
-        color: #334155;
-        padding: 2px 8px;
-        border-radius: 4px;
-        font-size: 0.75rem;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        border: none;
-    }
-
-    .demo-chip:hover {
-        background: #2E5A3C;
-        color: #ffffff;
+        box-shadow: 0 4px 12px rgba(43, 84, 56, 0.25);
     }
 </style>
 
 <div class="auth-page-wrapper">
     <div class="auth-card-container">
         
-        <!-- Left Hero Banner -->
+        <!-- Left Hero Banner (Elegan & Pas) -->
         <div class="auth-hero-banner">
-            <div>
-                <div class="d-flex align-items-center gap-3 mb-4">
-                    <img src="{{ asset('images/logo-rspad.png') }}" alt="RSPAD Logo" class="brand-hero-logo">
-                    <div>
-                        <h3 class="fw-bold text-white mb-0 tracking-wide">RSPAD</h3>
-                        <p class="text-white mb-0 font-monospace small opacity-90">GATOT SOEBROTO</p>
-                    </div>
-                </div>
+            <!-- Watermark samar di sudut latar -->
+            <img src="{{ asset('images/logo-rspad.png') }}" alt="" class="hero-watermark">
 
-                <div class="my-auto py-3">
-                    <span class="hero-badge-pill mb-3" style="font-size: 0.9rem; padding: 8px 18px;">
-                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="me-1"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path><path d="M9 12l2 2 4-4"></path></svg> Portal Pelaporan Resmi
-                    </span>
-                    <h2 class="fw-bold text-white lh-sm mb-3 fs-2">Sistem Rekapitulasi Pelaporan SIMRS</h2>
-                    <p class="text-white fs-6 mb-4 opacity-90 lh-base">Integrasi data rekapitulasi kunjungan pasien rawat jalan SIMRS RSPAD Gatot Soebroto dan Laporan Puskesad.</p>
+            <!-- Logo & Identitas Rumah Sakit -->
+            <div class="d-flex align-items-center gap-3">
+                <img src="{{ asset('images/logo-rspad.png') }}" alt="RSPAD Logo" class="brand-hero-logo">
+                <div class="lh-sm">
+                    <div class="text-white fw-bold" style="font-size: 0.95rem; letter-spacing: 0.02em;">RSPAD GATOT SOEBROTO</div>
+                    <div class="text-white-50 small" style="font-size: 0.8rem;">Puskesad &bull; </div>
                 </div>
             </div>
 
-            <div class="pt-3 border-top border-white border-opacity-20 text-white extra-small opacity-75">
-                Subdit Pelaporan Medis RSPAD Gatot Soebroto &copy; {{ date('Y') }}
+            <!-- Konten Tengah: Tidak sepi, tidak kepenuhan -->
+            <div class="my-auto py-4">
+                <span class="hero-tag">SISTEM LAPORAN REKPITULASI</span>
+                <h2 class="hero-headline">
+                    KUNJUNGAN DAN PENGUNJUNG
+                </h2>
+                <p class="hero-desc">
+                    RSPAD Gatot Soebroto Puskesad.
+                </p>
+            </div>
+
+            <!-- Catatan Kaki Sisi Kiri -->
+            <div class="pt-3 border-top border-white border-opacity-15 text-white-50 small" style="font-size: 0.78rem;">
+                Sistem Informasi Manajemen Rumah Sakit &copy; {{ date('Y') }}
             </div>
         </div>
 
@@ -250,24 +191,25 @@
 
             <!-- Mobile Logo Header -->
             <div class="d-lg-none text-center mb-4">
-                <img src="{{ asset('images/logo-rspad.png') }}" alt="RSPAD Logo" style="height: 50px;">
-                <h5 class="fw-bold text-success mb-0 mt-2">RSPAD GATOT SOEBROTO</h5>
-                <p class="text-muted small">Sistem Pelaporan Rawat Jalan</p>
+                <img src="{{ asset('images/logo-rspad.png') }}" alt="RSPAD Logo" style="height: 48px;">
+                <h6 class="fw-bold text-success mb-0 mt-2">RSPAD GATOT SOEBROTO</h6>
+                <p class="text-muted small">Rekapitulasi Kunjungan Pasien</p>
             </div>
 
+            <!-- Form Title -->
             <div class="mb-4">
                 <h4 class="fw-bold text-dark mb-1">Masuk Akun</h4>
-                <p class="text-muted small">Silakan masukkan email dan kata sandi Anda.</p>
+                <p class="text-muted small">Gunakan email dinas dan kata sandi Anda.</p>
             </div>
 
             @if(session('success'))
-                <div class="alert alert-success border-0 shadow-sm small mb-3 py-2 px-3 d-flex align-items-center gap-2" style="background-color: #E8F5E9; color: #2A6A2A;">
+                <div class="alert alert-success border-0 small mb-3 py-2 px-3 d-flex align-items-center gap-2" style="background-color: #E8F5E9; color: #2A6A2A;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg> {{ session('success') }}
                 </div>
             @endif
 
             @if($errors->any())
-                <div class="alert alert-danger border-0 shadow-sm small mb-3 py-2 px-3 d-flex align-items-center gap-2">
+                <div class="alert alert-danger border-0 small mb-3 py-2 px-3 d-flex align-items-center gap-2">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg> {{ $errors->first() }}
                 </div>
             @endif
@@ -277,7 +219,7 @@
 
                 <!-- Email Input -->
                 <div class="mb-3">
-                    <label for="email" class="form-label fw-semibold small text-secondary">Alamat Email</label>
+                    <label for="email" class="form-label fw-semibold small text-secondary">Alamat Email Dinas</label>
                     <div class="position-relative">
                         <input type="email" class="form-control form-control-rspad ps-5 @error('email') is-invalid @enderror" 
                                id="email" name="email" value="{{ old('email') }}" 
@@ -286,11 +228,9 @@
                     </div>
                 </div>
 
-                <!-- Password Input with Eye Toggle Icon -->
+                <!-- Password Input with Toggle -->
                 <div class="mb-3">
-                    <div class="d-flex justify-content-between align-items-center mb-1">
-                        <label for="password" class="form-label fw-semibold small text-secondary mb-0">Kata Sandi</label>
-                    </div>
+                    <label for="password" class="form-label fw-semibold small text-secondary mb-1">Kata Sandi</label>
                     <div class="position-relative">
                         <input type="password" class="form-control form-control-rspad ps-5 pe-5 @error('password') is-invalid @enderror" 
                                id="password" name="password" placeholder="••••••••" required>
@@ -305,7 +245,7 @@
                 <div class="d-flex justify-content-between align-items-center mb-4">
                     <div class="form-check">
                         <input type="checkbox" class="form-check-input" id="remember" name="remember">
-                        <label class="form-check-label small text-muted" for="remember">Ingat Sesi Login</label>
+                        <label class="form-check-label small text-muted" for="remember">Ingat sesi di perangkat ini</label>
                     </div>
                 </div>
 
@@ -317,8 +257,8 @@
 
             <!-- Register Link -->
             <div class="text-center">
-                <span class="text-muted small">Belum memiliki akun? </span>
-                <a href="{{ route('register') }}" class="fw-semibold text-decoration-none" style="color: #2E5A3C;">Daftar Akun Baru</a>
+                <span class="text-muted small">Belum punya akun? </span>
+                <a href="{{ route('register') }}" class="fw-semibold text-decoration-none" style="color: #2b5438;">Daftar di sini</a>
             </div>
 
         </div>
@@ -339,11 +279,6 @@
             input.type = 'password';
             eyeSvg.innerHTML = '<path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line>';
         }
-    }
-
-    function fillDemo(email, password) {
-        document.getElementById('email').value = email;
-        document.getElementById('password').value = password;
     }
 </script>
 @endsection

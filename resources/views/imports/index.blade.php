@@ -20,7 +20,7 @@
                            id="excel_file" name="excel_file" 
                            accept=".xls,.xlsx,.xlsb,.xlsm,.xltx,.xltm,.csv,.tsv,.txt,.ods,.slk,.xml" required>
                     <div class="form-text small text-muted">
-                        Mendukung semua tipe file Excel (.xlsx, .xls, .xlsb, .xlsm, .csv, .ods, .tsv, .xml) hingga 30 MB.
+                        Masukkan type file Excel (.xlsx, .xls, .xlsb, .xlsm, .csv, .ods, .tsv, .xml) hingga 30 MB.
                     </div>
                     @error('excel_file')
                         <div class="invalid-feedback small mt-1">{{ $message }}</div>

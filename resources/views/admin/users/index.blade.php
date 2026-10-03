@@ -7,7 +7,7 @@
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 border-bottom pb-3 mb-3">
         <div>
             <h5 class="fw-bold mb-1 text-dark">Validasi & Pengelolaan Akun Pengguna</h5>
-            <p class="text-muted small mb-0">Persetujuan pendaftaran akun Petugas baru oleh Admin (Kaur) dan daftar akun aktif</p>
+            <p class="text-muted small mb-0">Persetujuan pendaftaran akun Petugas baru dan daftar akun aktif</p>
         </div>
     </div>
 

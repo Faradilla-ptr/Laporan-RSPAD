@@ -51,7 +51,7 @@
         <div class="col-md-4">
             <label class="form-label fw-semibold small text-muted mb-1">Poliklinik</label>
             <select name="poli" class="form-select form-select-sm">
-                <option value="SEMUA" {{ ($poli ?? 'SEMUA') == 'SEMUA' ? 'selected' : '' }}>-- SEMUA POLIKLINIK --</option>
+                <option value="SEMUA" {{ ($poli ?? 'SEMUA') == 'SEMUA' ? 'selected' : '' }}>Seluruh Poliklinik</option>
                 @if(isset($polikliniks))
                     @foreach($polikliniks as $pName)
                         <option value="{{ $pName }}" {{ ($poli ?? '') == $pName ? 'selected' : '' }}>{{ $pName }}</option>
