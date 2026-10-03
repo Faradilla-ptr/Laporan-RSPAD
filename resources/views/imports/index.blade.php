@@ -48,8 +48,7 @@
                     </div>
                 </div>
 
-                <button type="submit" class="btn btn-rspad-primary w-100 py-2 btn-sm fw-semibold d-flex align-items-center justify-content-center gap-2">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
+                <button type="submit" class="btn btn-rspad-primary w-100 py-2 btn-sm fw-semibold">
                     Proses Import Data
                 </button>
             </form>
@@ -65,8 +64,7 @@
                     <p class="text-muted small mb-0">Daftar berkas SIMRS yang telah diproses ke dalam database</p>
                 </div>
                 @if($importLogs->count() > 0 || \App\Models\RawVisit::count() > 0)
-                <button type="button" class="btn btn-outline-danger btn-sm fw-semibold d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#modalTruncateAll">
-                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
+                <button type="button" class="btn btn-outline-danger btn-sm fw-semibold" data-bs-toggle="modal" data-bs-target="#modalTruncateAll">
                     Hapus Semua Data
                 </button>
                 @endif
@@ -99,9 +97,8 @@
                             <td>{{ $log->user->name ?? 'System' }}</td>
                             <td class="text-muted small">{{ $log->created_at->format('d/m/Y H:i') }}</td>
                             <td class="text-center">
-                                <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2 text-decoration-none d-inline-flex align-items-center gap-1"
+                                <button type="button" class="btn btn-outline-danger btn-sm py-1 px-2 text-decoration-none"
                                         data-bs-toggle="modal" data-bs-target="#modalDeleteLog{{ $log->id }}" title="Hapus berkas ini beserta datanya">
-                                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg>
                                     Hapus
                                 </button>
                             </td>

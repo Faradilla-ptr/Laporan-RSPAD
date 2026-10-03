@@ -9,38 +9,37 @@
         <!-- Header Card -->
         <div class="card-panel p-4 mb-4">
             <div class="d-flex align-items-center gap-3 border-bottom pb-3">
-                <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold fs-3 shadow-sm" style="width: 58px; height: 58px; background: linear-gradient(135deg, #2E5A3C 0%, #3B6E4A 100%);">
+                <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold fs-4 shadow-sm" style="width: 52px; height: 52px; background: linear-gradient(135deg, #2E5A3C 0%, #3B6E4A 100%);">
                     {{ strtoupper(substr($user->name, 0, 1)) }}
                 </div>
                 <div>
-                    <h4 class="fw-bold text-dark mb-0">{{ $user->name }}</h4>
+                    <h5 class="fw-bold text-dark mb-0">{{ $user->name }}</h5>
                     <div class="d-flex align-items-center gap-2 mt-1">
                         <span class="badge {{ $user->role === 'admin' ? 'bg-primary' : 'bg-success' }} px-2 py-1">
                             {{ strtoupper($user->role) }} {{ $user->role === 'admin' ? '(KAUR / ADMIN)' : '(PETUGAS INPUT)' }}
                         </span>
-                        <span class="text-muted small"><i class="bi bi-envelope me-1"></i>{{ $user->email }}</span>
+                        <span class="text-muted small">{{ $user->email }}</span>
                     </div>
                 </div>
             </div>
 
             @if(session('success'))
-                <div class="alert alert-success border-0 shadow-sm small my-3 py-2 px-3 d-flex align-items-center gap-2" style="background-color: #E8F5E9; color: #2A6A2A;">
-                    <i class="bi bi-check-circle-fill"></i> {{ session('success') }}
+                <div class="alert alert-success border-0 small my-3 py-2 px-3" style="background-color: #E8F5E9; color: #2A6A2A;">
+                    {{ session('success') }}
                 </div>
             @endif
 
             @if($errors->any())
-                <div class="alert alert-danger border-0 shadow-sm small my-3 py-2 px-3 d-flex align-items-center gap-2">
-                    <i class="bi bi-exclamation-triangle-fill"></i> {{ $errors->first() }}
+                <div class="alert alert-danger border-0 small my-3 py-2 px-3">
+                    {{ $errors->first() }}
                 </div>
             @endif
 
             <!-- Petugas Pending Request Warning -->
             @if($user->role === 'petugas' && isset($pendingRequest) && $pendingRequest)
-                <div class="alert alert-warning border-0 shadow-sm small my-3 py-3 px-3 d-flex align-items-center gap-2" style="background-color: #FFF8E1; color: #856404;">
-                    <i class="bi bi-hourglass-split fs-5"></i>
+                <div class="alert alert-warning border-0 small my-3 py-3 px-3" style="background-color: #FFF8E1; color: #856404;">
                     <div>
-                        <strong>Permohonan Perubahan Profil Dalam Antrean!</strong><br>
+                        <strong>Permohonan Perubahan Profil Dalam Antrean</strong><br>
                         Anda memiliki permohonan {{ $pendingRequest->request_type === 'CHANGE_PASSWORD' ? 'perubahan kata sandi' : 'pembaruan data profil' }} yang sedang menunggu validasi & persetujuan dari Admin (Kaur).
                     </div>
                 </div>
@@ -51,7 +50,7 @@
                 @csrf
                 @method('PUT')
 
-                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-person-gear me-2" style="color: var(--palette-5);"></i>Pengaturan Data Diri & Kata Sandi</h6>
+                <h6 class="fw-bold text-dark mb-3">Pengaturan Data Diri & Kata Sandi</h6>
 
                 <!-- Nama Lengkap -->
                 <div class="mb-3">
@@ -64,7 +63,7 @@
                     <label for="email" class="form-label fw-semibold small text-secondary">Alamat Email</label>
                     <input type="email" name="email" id="email" class="form-control form-control-sm" value="{{ old('email', $user->email) }}" required>
                     @if($user->role === 'petugas')
-                        <span class="text-muted extra-small d-block mt-1"><i class="bi bi-shield-lock me-1"></i>Perubahan email atau kata sandi oleh Petugas memerlukan persetujuan Admin.</span>
+                        <span class="text-muted extra-small d-block mt-1">Perubahan email atau kata sandi oleh Petugas memerlukan persetujuan Admin.</span>
                     @endif
                 </div>
 
@@ -76,7 +75,7 @@
 
                 <hr class="my-4">
 
-                <h6 class="fw-bold text-dark mb-3"><i class="bi bi-key-fill me-2" style="color: var(--palette-5);"></i>Ubah Kata Sandi Login</h6>
+                <h6 class="fw-bold text-dark mb-3">Ubah Kata Sandi Login</h6>
 
                 <div class="row g-2 mb-3">
                     <div class="col-md-6">
@@ -90,8 +89,8 @@
                 </div>
 
                 <div class="d-flex justify-content-end mt-4">
-                    <button type="submit" class="btn btn-sm btn-rspad-primary px-4 py-2 fw-medium shadow-sm d-flex align-items-center gap-2">
-                        <i class="bi bi-check-circle-fill"></i> {{ $user->role === 'admin' ? 'Simpan Perubahan' : 'Ajukan Perubahan ke Admin' }}
+                    <button type="submit" class="btn btn-sm btn-rspad-primary px-4 py-2 fw-medium shadow-sm">
+                        {{ $user->role === 'admin' ? 'Simpan Perubahan' : 'Ajukan Perubahan ke Admin' }}
                     </button>
                 </div>
             </form>

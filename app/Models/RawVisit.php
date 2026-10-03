@@ -47,16 +47,73 @@ class RawVisit extends Model
     }
 
     /**
-     * Determines if patient is Dalam Kota or Luar Kota based on address.
+     * SQL condition string for identifying Dalam Kota (Jakarta Pusat only).
+     */
+    public static function getDalamKotaSqlCondition(string $column = 'alamat'): string
+    {
+        $col = "LOWER(COALESCE({$column}, ''))";
+
+        $pusatKeywords = [
+            '%jakarta pusat%', '%jak-pus%', '%jakpus%', '%jak pus%', '%jakarta pst%', '%jak pst%',
+            '%gambir%', '%tanah abang%', '%menteng%', '%senen%', '%cempaka putih%', '%johar baru%',
+            '%kemayoran%', '%sawah besar%',
+        ];
+
+        $otherKeywords = [
+            '%jakarta selatan%', '%jak-sel%', '%jaksel%', '%jak sel%',
+            '%jakarta timur%', '%jak-tim%', '%jaktim%', '%jak tim%',
+            '%jakarta barat%', '%jak-bar%', '%jakbar%', '%jak bar%',
+            '%jakarta utara%', '%jak-ut%', '%jakut%', '%jak ut%',
+            '%kepulauan seribu%', '%p. seribu%', '%pulau seribu%',
+        ];
+
+        $pusatLikes = implode(' OR ', array_map(fn ($k) => "{$col} LIKE '{$k}'", $pusatKeywords));
+        $otherLikes = implode(' OR ', array_map(fn ($k) => "{$col} LIKE '{$k}'", $otherKeywords));
+
+        return "(({$pusatLikes}) AND NOT ({$otherLikes}))";
+    }
+
+    /**
+     * Determines if patient is Dalam Kota (Jakarta Pusat) or Luar Kota based on address.
      */
     public function getDomisiliAttribute(): string
     {
-        $alamatUpper = strtoupper($this->alamat ?? '');
-        if (str_contains($alamatUpper, 'JAKARTA') || str_contains($alamatUpper, 'DKI')) {
-            return 'Dalam Kota';
+        $a = strtoupper(trim((string) ($this->alamat ?? '')));
+
+        if (empty($a)) {
+            return 'Luar Kota';
         }
 
-        return 'Luar Kota';
+        $isOtherJakarta = (
+            str_contains($a, 'JAKARTA SELATAN') || str_contains($a, 'JAK-SEL') || str_contains($a, 'JAKSEL') || str_contains($a, 'JAK SEL') || str_contains($a, 'JAKARTA STN') ||
+            str_contains($a, 'JAKARTA TIMUR') || str_contains($a, 'JAK-TIM') || str_contains($a, 'JAKTIM') || str_contains($a, 'JAK TIM') || str_contains($a, 'JAKARTA TMR') ||
+            str_contains($a, 'JAKARTA BARAT') || str_contains($a, 'JAK-BAR') || str_contains($a, 'JAKBAR') || str_contains($a, 'JAK BAR') || str_contains($a, 'JAKARTA BRT') ||
+            str_contains($a, 'JAKARTA UTARA') || str_contains($a, 'JAK-UT') || str_contains($a, 'JAKUT') || str_contains($a, 'JAK UT') || str_contains($a, 'JAKARTA UTR') ||
+            str_contains($a, 'KEPULAUAN SERIBU') || str_contains($a, 'P. SERIBU') || str_contains($a, 'PULAU SERIBU')
+        );
+
+        if ($isOtherJakarta) {
+            return 'Luar Kota';
+        }
+
+        $isJakartaPusat = (
+            str_contains($a, 'JAKARTA PUSAT') ||
+            str_contains($a, 'JAK-PUS') ||
+            str_contains($a, 'JAKPUS') ||
+            str_contains($a, 'JAK PUS') ||
+            str_contains($a, 'JAKARTA PST') ||
+            str_contains($a, 'JAK PST') ||
+            str_contains($a, 'GAMBIR') ||
+            str_contains($a, 'TANAH ABANG') ||
+            str_contains($a, 'MENTENG') ||
+            str_contains($a, 'SENEN') ||
+            str_contains($a, 'CEMPAKA PUTIH') ||
+            str_contains($a, 'JOHAR BARU') ||
+            str_contains($a, 'KEMAYORAN') ||
+            str_contains($a, 'SAWAH BESAR')
+        );
+
+        return $isJakartaPusat ? 'Dalam Kota' : 'Luar Kota';
     }
 
     /**

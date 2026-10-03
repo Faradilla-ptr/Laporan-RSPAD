@@ -45,14 +45,16 @@ class ReportRL35Controller extends Controller
             ];
         }
 
+        $dalamCond = RawVisit::getDalamKotaSqlCondition('alamat');
+
         $poliDataRaw = (clone $query)
             ->reorder()
             ->select(
                 'poliklinik',
-                DB::raw("SUM(CASE WHEN (LOWER(COALESCE(alamat, '')) LIKE '%jakarta%' OR LOWER(COALESCE(alamat, '')) LIKE '%dki%') AND (UPPER(COALESCE(gender, 'L')) = 'L') THEN 1 ELSE 0 END) as dalam_kota_l"),
-                DB::raw("SUM(CASE WHEN (LOWER(COALESCE(alamat, '')) LIKE '%jakarta%' OR LOWER(COALESCE(alamat, '')) LIKE '%dki%') AND (UPPER(COALESCE(gender, 'L')) = 'P') THEN 1 ELSE 0 END) as dalam_kota_p"),
-                DB::raw("SUM(CASE WHEN NOT (LOWER(COALESCE(alamat, '')) LIKE '%jakarta%' OR LOWER(COALESCE(alamat, '')) LIKE '%dki%') AND (UPPER(COALESCE(gender, 'L')) = 'L') THEN 1 ELSE 0 END) as luar_kota_l"),
-                DB::raw("SUM(CASE WHEN NOT (LOWER(COALESCE(alamat, '')) LIKE '%jakarta%' OR LOWER(COALESCE(alamat, '')) LIKE '%dki%') AND (UPPER(COALESCE(gender, 'L')) = 'P') THEN 1 ELSE 0 END) as luar_kota_p"),
+                DB::raw("SUM(CASE WHEN {$dalamCond} AND (UPPER(COALESCE(gender, 'L')) = 'L') THEN 1 ELSE 0 END) as dalam_kota_l"),
+                DB::raw("SUM(CASE WHEN {$dalamCond} AND (UPPER(COALESCE(gender, 'L')) = 'P') THEN 1 ELSE 0 END) as dalam_kota_p"),
+                DB::raw("SUM(CASE WHEN NOT {$dalamCond} AND (UPPER(COALESCE(gender, 'L')) = 'L') THEN 1 ELSE 0 END) as luar_kota_l"),
+                DB::raw("SUM(CASE WHEN NOT {$dalamCond} AND (UPPER(COALESCE(gender, 'L')) = 'P') THEN 1 ELSE 0 END) as luar_kota_p"),
                 DB::raw('COUNT(*) as total')
             )
             ->groupBy('poliklinik')

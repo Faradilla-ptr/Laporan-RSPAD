@@ -6,7 +6,7 @@
 <div class="card-panel p-4 mb-4">
     <div class="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 border-bottom pb-3 mb-3">
         <div>
-            <h5 class="fw-bold mb-1 text-dark"><i class="bi bi-journal-text me-2" style="color: var(--palette-5);"></i>Log Aktivitas Pengguna (Trail Log)</h5>
+            <h5 class="fw-bold mb-1 text-dark">Log Aktivitas Pengguna (Trail Log)</h5>
             <p class="text-muted small mb-0">Catatan riwayat kegiatan, pengunggahan berkas, ekspor laporan, dan autentikasi pengguna</p>
         </div>
     </div>
@@ -15,13 +15,12 @@
     <form action="{{ url()->current() }}" method="GET" class="row g-2 mb-3 align-items-center">
         <div class="col-md-8">
             <div class="input-group input-group-sm">
-                <span class="input-group-text bg-white text-muted"><i class="bi bi-search"></i></span>
                 <input type="text" name="search" class="form-control form-control-sm" placeholder="Cari nama pengguna, jenis aksi, atau riwayat aktivitas..." value="{{ request('search') }}">
             </div>
         </div>
         <div class="col-md-4 d-flex gap-2">
             <button type="submit" class="btn btn-sm btn-rspad-primary w-100 fw-medium">
-                <i class="bi bi-funnel-fill me-1"></i> Filter Log
+                Filter Log
             </button>
             @if(request('search'))
                 <a href="{{ route('admin.activity_logs.index') }}" class="btn btn-sm btn-outline-secondary px-3 fw-medium">Reset</a>
@@ -47,11 +46,11 @@
                 <tr>
                     <td class="text-center text-muted">{{ $logs->firstItem() + $index }}</td>
                     <td class="small fw-medium text-dark">
-                        <i class="bi bi-clock me-1 text-muted"></i>{{ $log->created_at ? $log->created_at->format('d M Y, H:i:s') : '-' }}
+                        {{ $log->created_at ? $log->created_at->format('d M Y, H:i:s') : '-' }}
                     </td>
                     <td class="fw-semibold text-dark">
                         <div class="d-flex align-items-center gap-2">
-                            <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style="width: 26px; height: 26px; background-color: var(--palette-4); font-size: 0.72rem;">
+                            <div class="rounded-circle text-white d-flex align-items-center justify-content-center fw-bold" style="width: 24px; height: 24px; background-color: var(--palette-4); font-size: 0.7rem;">
                                 {{ strtoupper(substr($log->user_name ?: 'P', 0, 1)) }}
                             </div>
                             <span>{{ $log->user_name ?: 'Sistem / Guest' }}</span>

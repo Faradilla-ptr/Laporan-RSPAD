@@ -19,8 +19,7 @@
         </div>
 
         @if(count($pendingUsers) === 0)
-            <div class="alert alert-light border small text-muted d-flex align-items-center gap-2">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+            <div class="alert alert-light border small text-muted">
                 Tidak ada antrean pendaftaran akun Petugas baru yang membutuhkan validasi saat ini.
             </div>
         @else
@@ -50,15 +49,15 @@
                                     <div class="d-flex justify-content-center gap-1">
                                         <form action="{{ route('admin.users.approve', $u->id) }}" method="POST" class="d-inline">
                                             @csrf
-                                            <button type="submit" class="btn btn-sm btn-success py-1 px-3 d-flex align-items-center gap-1" title="Setujui Akun Ini">
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><polyline points="20 6 9 17 4 12"></polyline></svg> Disetujui
+                                            <button type="submit" class="btn btn-sm btn-success py-1 px-3 fw-medium" title="Setujui Akun Ini">
+                                                Disetujui
                                             </button>
                                         </form>
                                         <form action="{{ route('admin.users.reject', $u->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tolak dan hapus pendaftaran akun ini?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger py-1 px-2 d-flex align-items-center gap-1" title="Tolak Pendaftaran">
-                                                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg> Tolak
+                                            <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 fw-medium" title="Tolak Pendaftaran">
+                                                Tolak
                                             </button>
                                         </form>
                                     </div>
@@ -79,8 +78,8 @@
         </div>
 
         @if(!isset($pendingProfileRequests) || count($pendingProfileRequests) === 0)
-            <div class="alert alert-light border small text-muted d-flex align-items-center gap-2">
-                <i class="bi bi-check-circle"></i> Tidak ada permohonan perubahan profil atau password dari Petugas saat ini.
+            <div class="alert alert-light border small text-muted">
+                Tidak ada permohonan perubahan profil atau password dari Petugas saat ini.
             </div>
         @else
             <div class="table-responsive">
@@ -115,7 +114,7 @@
                                         <div>Email: <strong>{{ $pReq->new_email }}</strong></div>
                                     @endif
                                     @if($pReq->new_password)
-                                        <div class="text-success fw-bold"><i class="bi bi-key-fill me-1"></i>Permohonan Kata Sandi Baru</div>
+                                        <div class="text-success fw-bold">Permohonan Kata Sandi Baru</div>
                                     @endif
                                 </td>
                                 <td class="small text-muted">{{ $pReq->created_at ? $pReq->created_at->format('d M Y H:i') : '-' }}</td>
@@ -123,15 +122,15 @@
                                     <div class="d-flex justify-content-center gap-1">
                                         <form action="{{ route('admin.profile_requests.approve', $pReq->id) }}" method="POST" class="d-inline">
                                             @csrf
-                                            <button type="submit" class="btn btn-sm btn-success py-1 px-3 d-flex align-items-center gap-1">
-                                                <i class="bi bi-check-lg"></i> Setujui
+                                            <button type="submit" class="btn btn-sm btn-success py-1 px-3 fw-medium">
+                                                Setujui
                                             </button>
                                         </form>
                                         <form action="{{ route('admin.profile_requests.reject', $pReq->id) }}" method="POST" class="d-inline" onsubmit="return confirm('Tolak permohonan perubahan profil ini?')">
                                             @csrf
                                             @method('DELETE')
-                                            <button type="submit" class="btn btn-sm btn-danger py-1 px-2 d-flex align-items-center gap-1">
-                                                <i class="bi bi-x-lg"></i> Tolak
+                                            <button type="submit" class="btn btn-sm btn-outline-danger py-1 px-2 fw-medium">
+                                                Tolak
                                             </button>
                                         </form>
                                     </div>

@@ -402,31 +402,31 @@
             box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
         }
 
-        /* Metric Cards - UNIFORM 4-CARD STYLING */
+        /* Metric Cards - UNIFORM CLEAN STYLING */
         .metric-card {
             background: #ffffff;
             border: 1px solid var(--border-color);
-            border-top: 4px solid var(--palette-5) !important;
+            border-top: 3px solid var(--palette-5) !important;
             border-radius: 8px;
             padding: 18px 20px;
-            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+            box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
             height: 100%;
         }
 
         .metric-title {
-            font-size: 0.75rem;
+            font-size: 0.725rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.05em;
             color: var(--text-muted);
-            margin-bottom: 6px;
+            margin-bottom: 8px;
         }
 
         .metric-value {
-            font-size: 1.75rem;
+            font-size: 1.8rem;
             font-weight: 700;
             color: var(--palette-5) !important;
-            line-height: 1;
+            line-height: 1.1;
             margin-bottom: 4px;
         }
 
@@ -439,24 +439,24 @@
         /* Tables */
         .table-clean {
             margin-bottom: 0;
-            font-size: 0.875rem;
+            font-size: 0.865rem;
         }
 
         .table-clean th {
             background-color: #2E5A3C !important;
             color: #ffffff !important;
-            font-weight: 700;
-            font-size: 0.82rem;
+            font-weight: 600;
+            font-size: 0.8rem;
             text-transform: uppercase;
-            letter-spacing: 0.04em;
+            letter-spacing: 0.03em;
             border-bottom: 2px solid #23422E;
-            padding: 11px 14px;
+            padding: 10px 14px;
             vertical-align: middle;
         }
 
         .table-clean td {
             padding: 10px 14px;
-            border-bottom: 1px solid var(--border-color);
+            border-bottom: 1px solid #e2e8f0;
             vertical-align: middle;
         }
 
@@ -511,16 +511,6 @@
             color: #ffffff !important;
         }
 
-        /* Footer */
-        .app-footer {
-            margin-top: auto;
-            background-color: #ffffff;
-            border-top: 1px solid var(--border-color);
-            padding: 16px 28px;
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
         /* Responsive Sidebar for Mobile */
         @media (max-width: 991.98px) {
             .app-sidebar {
@@ -561,7 +551,7 @@
                     </div>
                 </div>
                 <button type="button" class="sidebar-toggle-btn d-none d-lg-flex" id="sidebarToggle" title="Buka / Tutup Sidebar">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <line x1="3" y1="12" x2="21" y2="12"></line>
                         <line x1="3" y1="6" x2="21" y2="6"></line>
                         <line x1="3" y1="18" x2="21" y2="18"></line>
@@ -693,43 +683,24 @@
 
         <!-- Mobile Floating Toggle Button -->
         <button class="mobile-toggle-btn" type="button" onclick="document.body.classList.toggle('mobile-sidebar-open')">
-            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line></svg>
         </button>
         @endauth
 
         <!-- Main Workspace -->
         <div class="app-main">
-            @auth
-            <!-- Top Header Bar with Live Real-time Clock (WIB) -->
-            <header class="bg-white border-bottom px-4 py-2.5 d-flex align-items-center justify-content-between shadow-sm" style="min-height: 52px;">
-                <div class="d-flex align-items-center gap-2">
-                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2.5 py-1.5 small d-flex align-items-center gap-1.5 fw-semibold" style="font-size: 0.78rem;">
-                        <span class="spinner-grow spinner-grow-sm text-success" style="width: 7px; height: 7px;" role="status"></span>
-                        <i class="bi bi-clock-history"></i> Real-time System (WIB)
-                    </span>
-                    <span class="text-muted small fw-medium d-none d-md-inline ms-1">RSPAD Gatot Soebroto — SIMRS</span>
-                </div>
-                <div class="d-flex align-items-center gap-3">
-                    <div class="text-end">
-                        <div id="realtimeSystemClock" class="fw-bold text-dark font-monospace" style="font-size: 0.92rem; letter-spacing: 0.04em; color: #1e293b !important;">--:--:-- WIB</div>
-                        <div id="realtimeSystemDate" class="text-muted small" style="font-size: 0.73rem;">---</div>
-                    </div>
-                </div>
-            </header>
-            @endauth
-
             <!-- Content Area -->
             <main class="container-fluid p-4">
                 <!-- Universal Notification Pop-up Modal -->
                 @if(session('success'))
                 <div class="modal fade show d-block" id="appSuccessNotificationModal" tabindex="-1" style="background: rgba(0, 0, 0, 0.45); z-index: 1070;" aria-modal="true" role="dialog">
                     <div class="modal-dialog modal-dialog-centered modal-sm">
-                        <div class="modal-content border-0 shadow-lg text-center p-3" style="border-radius: 16px;">
+                        <div class="modal-content border-0 shadow-lg text-center p-3" style="border-radius: 12px;">
                             <div class="modal-body p-3">
-                                <div class="mb-3 d-inline-flex align-items-center justify-content-center rounded-circle mx-auto" style="width: 58px; height: 58px; background-color: #E8F5E9; color: #2E7D32;">
-                                    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+                                <div class="mb-3 d-inline-flex align-items-center justify-content-center rounded-circle mx-auto" style="width: 52px; height: 52px; background-color: #E8F5E9; color: #2E7D32;">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M22 11.08V12a10 10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
                                 </div>
-                                <h6 class="fw-bold text-dark mb-2">Berhasil!</h6>
+                                <h6 class="fw-bold text-dark mb-2">Berhasil</h6>
                                 <p class="text-muted small mb-3">{{ session('success') }}</p>
                                 <button type="button" class="btn btn-sm btn-rspad-primary px-4 rounded-pill fw-semibold" onclick="document.getElementById('appSuccessNotificationModal').remove()">OK</button>
                             </div>
@@ -751,12 +722,12 @@
                 @if(session('error') || $errors->any())
                 <div class="modal fade show d-block" id="appErrorNotificationModal" tabindex="-1" style="background: rgba(0, 0, 0, 0.45); z-index: 1070;" aria-modal="true" role="dialog">
                     <div class="modal-dialog modal-dialog-centered modal-sm">
-                        <div class="modal-content border-0 shadow-lg text-center p-3" style="border-radius: 16px;">
+                        <div class="modal-content border-0 shadow-lg text-center p-3" style="border-radius: 12px;">
                             <div class="modal-body p-3">
-                                <div class="mb-3 d-inline-flex align-items-center justify-content-center rounded-circle mx-auto" style="width: 58px; height: 58px; background-color: #FFEBEE; color: #C62828;">
-                                    <svg width="34" height="34" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
+                                <div class="mb-3 d-inline-flex align-items-center justify-content-center rounded-circle mx-auto" style="width: 52px; height: 52px; background-color: #FFEBEE; color: #C62828;">
+                                    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg>
                                 </div>
-                                <h6 class="fw-bold text-dark mb-2">Perhatian / Gagal</h6>
+                                <h6 class="fw-bold text-dark mb-2">Perhatian</h6>
                                 <p class="text-muted small mb-3">
                                     {{ session('error') ?? $errors->first() }}
                                 </p>
@@ -803,37 +774,6 @@
                     localStorage.setItem('sidebar_collapsed', isCollapsed ? 'true' : 'false');
                 });
             }
-
-            // Real-time System Clock (WIB - Asia/Jakarta)
-            function updateRealtimeClock() {
-                const now = new Date();
-                const clockEl = document.getElementById('realtimeSystemClock');
-                const dateEl = document.getElementById('realtimeSystemDate');
-                
-                if (clockEl) {
-                    const timeStr = now.toLocaleTimeString('id-ID', {
-                        timeZone: 'Asia/Jakarta',
-                        hour: '2-digit',
-                        minute: '2-digit',
-                        second: '2-digit',
-                        hour12: false
-                    }).replace(/\./g, ':');
-                    clockEl.textContent = timeStr + ' WIB';
-                }
-                
-                if (dateEl) {
-                    const dateStr = now.toLocaleDateString('id-ID', {
-                        timeZone: 'Asia/Jakarta',
-                        weekday: 'long',
-                        day: 'numeric',
-                        month: 'long',
-                        year: 'numeric'
-                    });
-                    dateEl.textContent = dateStr;
-                }
-            }
-            setInterval(updateRealtimeClock, 1000);
-            updateRealtimeClock();
         });
     </script>
     @yield('scripts')

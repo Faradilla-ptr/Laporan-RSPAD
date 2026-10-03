@@ -11,12 +11,10 @@
             <span class="text-muted small">Laporan Status Pasien & Golongan Personel ke Pusat Kesehatan Angkatan Darat</span>
         </div>
         <div class="d-flex gap-2">
-            <button type="button" class="btn btn-sm btn-outline-rspad d-flex align-items-center gap-1" data-bs-toggle="modal" data-bs-target="#exportExcelModal" onclick="document.getElementById('formExportExcel').action='{{ route('reports.puskesad.export') }}'">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+            <button type="button" class="btn btn-sm btn-outline-rspad fw-medium" data-bs-toggle="modal" data-bs-target="#exportExcelModal" onclick="document.getElementById('formExportExcel').action='{{ route('reports.puskesad.export') }}'">
                 Export Excel (.xlsx)
             </button>
-            <button onclick="window.print()" class="btn btn-sm btn-rspad-primary d-flex align-items-center gap-1">
-                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 6 2 18 2 18 9"></polyline><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"></path><rect x="6" y="14" width="12" height="8"></rect></svg>
+            <button onclick="window.print()" class="btn btn-sm btn-rspad-primary fw-medium">
                 Cetak Laporan
             </button>
         </div>
@@ -60,8 +58,8 @@
             </select>
         </div>
         <div class="col-md-2 mt-auto">
-            <button type="submit" class="btn btn-sm btn-rspad-primary w-100 py-1">
-                Filter Periode
+            <button type="submit" class="btn btn-sm btn-rspad-primary w-100 py-1 fw-medium">
+                Terapkan Filter
             </button>
         </div>
     </form>

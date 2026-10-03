@@ -15,7 +15,7 @@
 
     <form action="{{ url()->current() }}" method="GET" class="row g-2 align-items-end">
         <div class="col-lg-3 col-md-6">
-            <label class="form-label fw-semibold small text-muted mb-1"><i class="bi bi-calendar-month me-1"></i>Bulan Periode</label>
+            <label class="form-label fw-semibold small text-muted mb-1">Bulan Periode</label>
             <select name="month" class="form-select form-select-sm">
                 @foreach($availableMonths as $mNum => $mName)
                     <option value="{{ $mNum }}" {{ $month == (string)$mNum ? 'selected' : '' }}>
@@ -25,7 +25,7 @@
             </select>
         </div>
         <div class="col-lg-2 col-md-6">
-            <label class="form-label fw-semibold small text-muted mb-1"><i class="bi bi-calendar-event me-1"></i>Tahun Periode</label>
+            <label class="form-label fw-semibold small text-muted mb-1">Tahun Periode</label>
             <select name="year" class="form-select form-select-sm">
                 <option value="SEMUA" {{ $year == 'SEMUA' ? 'selected' : '' }}>-- SEMUA TAHUN --</option>
                 @if(isset($dbYears) && count($dbYears) > 0)
@@ -40,7 +40,7 @@
             </select>
         </div>
         <div class="col-lg-3 col-md-6">
-            <label class="form-label fw-semibold small text-muted mb-1"><i class="bi bi-hospital me-1"></i>Poliklinik</label>
+            <label class="form-label fw-semibold small text-muted mb-1">Poliklinik</label>
             <select name="poli" class="form-select form-select-sm">
                 <option value="SEMUA" {{ ($poli ?? 'SEMUA') == 'SEMUA' ? 'selected' : '' }}>Seluruh Poliklinik</option>
                 @if(isset($polikliniks))
@@ -51,11 +51,11 @@
             </select>
         </div>
         <div class="col-lg-4 col-md-6 d-flex gap-2">
-            <button type="submit" class="btn btn-sm btn-rspad-primary flex-fill py-2 fw-medium shadow-sm d-flex align-items-center justify-content-center gap-1">
-                <i class="bi bi-funnel-fill"></i> Terapkan Filter
+            <button type="submit" class="btn btn-sm btn-rspad-primary flex-fill py-2 fw-medium shadow-sm">
+                Terapkan Filter
             </button>
-            <button type="button" class="btn btn-sm btn-rspad-primary flex-fill py-2 fw-medium shadow-sm d-flex align-items-center justify-content-center gap-1" data-bs-toggle="modal" data-bs-target="#exportExcelModal" onclick="document.getElementById('formExportExcel').action='{{ route('reports.rl34.export') }}'">
-                <i class="bi bi-file-earmark-excel-fill"></i> Download Excel
+            <button type="button" class="btn btn-sm btn-outline-rspad flex-fill py-2 fw-medium shadow-sm" data-bs-toggle="modal" data-bs-target="#exportExcelModal" onclick="document.getElementById('formExportExcel').action='{{ route('reports.rl34.export') }}'">
+                Download Excel
             </button>
         </div>
     </form>
@@ -65,7 +65,7 @@
 <div class="card-panel p-4 mb-4">
     <div class="table-responsive">
         <table class="table table-clean table-bordered align-middle text-nowrap">
-            <thead style="background-color: #588b8b; color: #ffffff;" class="text-center">
+            <thead class="text-center">
                 <tr>
                     <th style="width: 60px;">No.</th>
                     <th style="width: 140px;">Aksi</th>
@@ -78,8 +78,8 @@
                     <td class="text-center">1</td>
                     <td class="text-center">
                         <div class="d-flex gap-1 justify-content-center">
-                            <button class="btn btn-sm text-white px-2 py-0" style="background-color: #f87171; font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#deleteRL34Modal1">Hapus</button>
-                            <button class="btn btn-sm text-white px-2 py-0" style="background-color: #a3e635; color: #3f6212 !important; font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#editRL34Modal1">Ubah</button>
+                            <button class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#deleteRL34Modal1">Hapus</button>
+                            <button class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#editRL34Modal1">Ubah</button>
                         </div>
                     </td>
                     <td class="fw-semibold text-dark">Pengunjung Baru</td>
@@ -89,8 +89,8 @@
                     <td class="text-center">2</td>
                     <td class="text-center">
                         <div class="d-flex gap-1 justify-content-center">
-                            <button class="btn btn-sm text-white px-2 py-0" style="background-color: #f87171; font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#deleteRL34Modal2">Hapus</button>
-                            <button class="btn btn-sm text-white px-2 py-0" style="background-color: #a3e635; color: #3f6212 !important; font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#editRL34Modal2">Ubah</button>
+                            <button class="btn btn-sm btn-outline-danger py-0 px-2" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#deleteRL34Modal2">Hapus</button>
+                            <button class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#editRL34Modal2">Ubah</button>
                         </div>
                     </td>
                     <td class="fw-semibold text-dark">Pengunjung Lama</td>
