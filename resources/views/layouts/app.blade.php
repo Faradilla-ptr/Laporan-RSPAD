@@ -731,7 +731,7 @@
                                 </div>
                                 <h6 class="fw-bold text-dark mb-2">Berhasil!</h6>
                                 <p class="text-muted small mb-3">{{ session('success') }}</p>
-                                <button type="button" class="btn btn-sm btn-rspad-primary px-4 rounded-pill fw-semibold" onclick="document.getElementById('appSuccessNotificationModal').remove()">OK / Tutup</button>
+                                <button type="button" class="btn btn-sm btn-rspad-primary px-4 rounded-pill fw-semibold" onclick="document.getElementById('appSuccessNotificationModal').remove()">OK</button>
                             </div>
                         </div>
                     </div>

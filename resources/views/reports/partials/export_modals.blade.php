@@ -41,7 +41,7 @@
                     <div class="mb-3" id="excelExportPoliGroup">
                         <label class="form-label fw-semibold small text-muted mb-1">Poliklinik</label>
                         <select name="poli" id="excelExportPoli" class="form-select">
-                            <option value="SEMUA">-- SEMUA POLIKLINIK --</option>
+                            <option value="SEMUA">Seluruh Poliklinik</option>
                             @if(isset($polikliniks))
                                 @foreach($polikliniks as $pName)
                                     <option value="{{ $pName }}" {{ (isset($poli) && $poli == $pName) ? 'selected' : '' }}>{{ $pName }}</option>

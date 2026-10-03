@@ -24,7 +24,7 @@ class AppServiceProvider extends ServiceProvider
         Paginator::useBootstrapFive();
 
         View::share('availableMonths', [
-            'SEMUA' => '-- SEMUA BULAN --',
+            'SEMUA' => 'Seluruh Bulan',
             '1' => 'Januari',
             '2' => 'Februari',
             '3' => 'Maret',
