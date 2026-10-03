@@ -13,6 +13,9 @@ class ProfileController extends Controller
     public function index()
     {
         $user = Auth::user();
+
+        ActivityLogger::log('VIEW_PROFILE', 'Melihat halaman profil pengguna.');
+
         $pendingRequest = ProfileRequest::where('user_id', $user->id)->where('status', 'pending')->latest()->first();
         $recentRequests = ProfileRequest::where('user_id', $user->id)->latest()->limit(5)->get();
 

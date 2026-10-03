@@ -117,10 +117,7 @@ class RawVisit extends Model
     }
 
     /**
-     * Categorizes patient into Puskesad Status Pasien group.
-     */
-    /**
-     * Categorizes patient into Puskesad Status Pasien group.
+     * Categorizes patient into Puskesad Status Pasien group matching official Puskesad report format.
      */
     public function getStatusPuskesadAttribute(): string
     {
@@ -131,24 +128,38 @@ class RawVisit extends Model
         $pangkat = strtoupper(trim((string) ($this->pangkat ?? '')));
         $kategori = strtoupper(trim((string) ($this->kategori ?? '')));
 
-        // 1. Check TNI AL (Militer & Keluarga)
+        // 1. JKN AKTIF
+        if ($kelompok === 'AD' || $kelompok === 'MILITER TNI AD' || str_contains($kelompok, 'TNI AD')) {
+            return 'TNI AD';
+        }
+        if ($kelompok === 'PNS AD') {
+            return 'PNS AD';
+        }
+        if ($kelompok === 'KEL AD' || $kelompok === 'KELUARGA MILITER') {
+            return 'KEL AD';
+        }
         if ($kelompok === 'AL' || str_contains($kelompok, 'TNI AL')) {
             return 'TNI AL';
         }
-        if ($kelompok === 'KEL AL' || (str_contains($kelompok, 'KELUARGA') && (str_contains($kesatuan, 'AL') || str_contains($instansi, 'AL') || str_contains($pangkat, 'AL')))) {
+        if ($kelompok === 'PNS AL') {
+            return 'PNS AL';
+        }
+        if ($kelompok === 'KEL AL') {
             return 'KEL AL';
         }
-
-        // 2. Check TNI AU (Militer & Keluarga)
         if ($kelompok === 'AU' || str_contains($kelompok, 'TNI AU')) {
             return 'TNI AU';
         }
-        if ($kelompok === 'KEL AU' || (str_contains($kelompok, 'KELUARGA') && (str_contains($kesatuan, 'AU') || str_contains($instansi, 'AU') || str_contains($pangkat, 'AU')))) {
+        if ($kelompok === 'PNS AU') {
+            return 'PNS AU';
+        }
+        if ($kelompok === 'KEL AU') {
             return 'KEL AU';
         }
-
-        // 3. Check PNS (PNS AD / AL / AU)
-        if ($kelompok === 'PNS KEMHAN/TNI' || str_contains($kelompok, 'PNS') || str_contains($instansi, 'PNS') || str_contains($pangkat, 'PNS')) {
+        if ($kelompok === 'PPPK DINAS') {
+            return 'PPPK DINAS';
+        }
+        if ($kelompok === 'PNS KEMHAN/TNI') {
             if (str_contains($kesatuan, 'AL') || str_contains($instansi, 'AL')) {
                 return 'PNS AL';
             }
@@ -158,22 +169,19 @@ class RawVisit extends Model
 
             return 'PNS AD';
         }
+        if ($kelompok === 'KELUARGA PNS') {
+            if (str_contains($kesatuan, 'AL') || str_contains($instansi, 'AL')) {
+                return 'KEL AL';
+            }
+            if (str_contains($kesatuan, 'AU') || str_contains($instansi, 'AU')) {
+                return 'KEL AU';
+            }
 
-        // 4. Check PPPK Dinas
-        if (str_contains($kelompok, 'PPPK DINAS') || str_contains($pangkat, 'PPPK')) {
-            return 'PPPK DINAS';
-        }
-
-        // 5. Check TNI AD (Militer & Keluarga)
-        if ($kelompok === 'AD' || str_contains($kelompok, 'MILITER TNI AD') || str_contains($kelompok, 'TNI AD')) {
-            return 'TNI AD';
-        }
-        if (str_contains($kelompok, 'KELUARGA MILITER') || str_contains($kelompok, 'KEL AD')) {
             return 'KEL AD';
         }
 
-        // Fallback for Dinas AD if penjamin/instansi indicates Dinas/Asabri
-        if (str_contains($penjamin, 'BPJS DINAS') || str_contains($penjamin, 'ASABRI') || $instansi === 'TNI') {
+        // Fallback for JKN DINAS AD
+        if (str_contains($penjamin, 'BPJS DINAS') || $instansi === 'TNI') {
             if (str_contains($kategori, 'ANAK') || str_contains($kategori, 'ISTRI') || str_contains($kategori, 'SUAMI') || str_contains($kategori, 'KELUARGA')) {
                 return 'KEL AD';
             }
@@ -181,31 +189,68 @@ class RawVisit extends Model
             return 'TNI AD';
         }
 
-        // 6. POLRI
-        if ($kelompok === 'POLRI' || str_contains($kelompok, 'POLRI') || str_contains($penjamin, 'POLRI') || str_contains($instansi, 'POLRI')) {
-            return 'JKN POLRI';
+        // 2. JKN POLRI
+        if ($kelompok === 'POLRI' || str_contains($kelompok, 'POLRI') || $penjamin === 'BPJS POLRI' || str_contains($instansi, 'POLRI')) {
+            if (str_contains($kelompok, 'PNS') || str_contains($pangkat, 'PNS')) {
+                return 'PNS POLRI';
+            }
+            if (str_contains($kelompok, 'KEL') || str_contains($kategori, 'KELUARGA')) {
+                return 'KEL POLRI';
+            }
+
+            return 'POLRI';
+        }
+        if ($kelompok === 'KEL POLRI') {
+            return 'KEL POLRI';
+        }
+        if ($kelompok === 'PNS POLRI') {
+            return 'PNS POLRI';
         }
 
-        // 7. PURNAWIRAWAN
-        if ($kelompok === 'PURNAWIRAWAN' || str_contains($kelompok, 'PURNAWIRAWAN') || str_contains($penjamin, 'PURNAWIRAWAN') || str_contains($pangkat, 'PENSIUNAN')) {
-            return 'PURNAWIRAWAN';
+        // 3. JKN PURNAWIRAWAN
+        if ($kelompok === 'PURNAWIRAWAN' || str_contains($kelompok, 'PURNAWIRAWAN') || $penjamin === 'BPJS PURNAWIRAWAN' || $penjamin === 'ASABRI') {
+            return 'JKN PURNAWIRAWAN';
         }
 
-        // 8. BPJS PBI
-        if ($kelompok === 'BPJS PBI' || str_contains($kelompok, 'PBI') || str_contains($penjamin, 'PBI')) {
-            return 'BPJS PBI';
+        // 4. JKN KEMENTERIAN & 5. PPPK KEMENTERIAN
+        if ($kelompok === 'PPPK KEMENTERIAN' || $kelompok === 'PPPK KEMENTRIAN') {
+            return 'PPPK KEMENTERIAN';
+        }
+        if ($penjamin === 'BPJS KEMENTRIAN' || str_contains($kelompok, 'KEMENTERIAN') || str_contains($kelompok, 'KEMENTRIAN')) {
+            return 'JKN KEMENTERIAN';
         }
 
-        // 9. BPJS SWASTA / KEMENTERIAN
-        if (str_contains($kelompok, 'BPJS') || str_contains($penjamin, 'BPJS') || str_contains($penjamin, 'PEGAWAI') || str_contains($penjamin, 'KEMENTRIAN')) {
-            return 'BPJS KEMENTERIAN / SWASTA';
+        // 6. JKN UMUM (PBI, MANDIRI, TENAGA KERJA)
+        if ($kelompok === 'BPJS PBI' || $penjamin === 'BPJS PBI' || str_contains($penjamin, 'PBI')) {
+            return 'PBI';
+        }
+        if ($penjamin === 'BPJS KETENAGAKERJAAN' || str_contains($penjamin, 'KETENAGAKERJAAN')) {
+            return 'TENAGA KERJA';
+        }
+        if ($penjamin === 'BPJS MANDIRI' || str_contains($penjamin, 'MANDIRI')) {
+            return 'MANDIRI';
         }
 
-        // 10. TUNAI / UMUM
-        if (str_contains($kelompok, 'TUNAI') || str_contains($kelompok, 'UMUM') || str_contains($penjamin, 'TUNAI') || str_contains($penjamin, 'UMUM')) {
-            return 'TUNAI';
+        // 7. SWASTA
+        if ($penjamin === 'BPJS PEGAWAI SWASTA' || str_contains($kelompok, 'SWASTA')) {
+            return 'SWASTA';
         }
 
-        return 'ASURANSI / LAIN-LAIN';
+        // 8. JAMINAN RSPAD
+        if ($penjamin === 'BPJS RSPAD' || $penjamin === 'YANSUS RSPAD' || str_contains($penjamin, 'RSPAD')) {
+            return 'JAMINAN RSPAD';
+        }
+
+        // 9. BAKSOS
+        if (str_contains($kelompok, 'BAKSOS') || str_contains($penjamin, 'BAKSOS')) {
+            return 'BAKSOS';
+        }
+
+        // 10. ASURANSI / MANDIRI Fallback
+        if ($penjamin === 'BPJS MANDIRI / SWASTA' || $kelompok === 'BPJS MANDIRI / SWASTA') {
+            return 'MANDIRI';
+        }
+
+        return 'ASURANSI';
     }
 }

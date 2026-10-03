@@ -528,6 +528,18 @@ class ExcelReportExporter
         }
         $end6 = $rPus - 1;
 
+        $sub6P = array_sum(array_intersect_key($countsP, $items6));
+        $sub6K = array_sum(array_intersect_key($countsK, $items6));
+
+        $sheetPuskesad->setCellValue("B{$rPus}", 'SUB TOTAL');
+        $sheetPuskesad->setCellValue("C{$rPus}", "=SUM(C{$start6}:C{$end6})");
+        $sheetPuskesad->setCellValue("D{$rPus}", $sub6P / $totPAll);
+        $sheetPuskesad->setCellValue("E{$rPus}", "=SUM(E{$start6}:E{$end6})");
+        $sheetPuskesad->setCellValue("F{$rPus}", $sub6K / $totKAll);
+        $sheetPuskesad->getStyle("A{$rPus}:F{$rPus}")->getFont()->setBold(true);
+        $sub6Row = $rPus;
+        $rPus++;
+
         $standaloneRows2 = [
             '7' => ['no' => '7', 'lbl' => 'SWASTA', 'key' => '7'],
             '8' => ['no' => '8', 'lbl' => 'JAMINAN RSPAD', 'key' => '8'],
@@ -551,8 +563,8 @@ class ExcelReportExporter
         $actualGrandRow = $rPus;
         $sheetPuskesad->setCellValue("B{$actualGrandRow}", 'JUMLAH');
 
-        $cSumCells = "C{$sub1Row}+C{$sub2Row}+".implode('+', array_map(fn ($r) => "C{$r}", $standaloneRowIndices))."+SUM(C{$start6}:C{$end6})";
-        $eSumCells = "E{$sub1Row}+E{$sub2Row}+".implode('+', array_map(fn ($r) => "E{$r}", $standaloneRowIndices))."+SUM(E{$start6}:E{$end6})";
+        $cSumCells = "C{$sub1Row}+C{$sub2Row}+C{$sub6Row}+".implode('+', array_map(fn ($r) => "C{$r}", $standaloneRowIndices));
+        $eSumCells = "E{$sub1Row}+E{$sub2Row}+E{$sub6Row}+".implode('+', array_map(fn ($r) => "E{$r}", $standaloneRowIndices));
 
         $sheetPuskesad->setCellValue("C{$actualGrandRow}", "={$cSumCells}");
         $sheetPuskesad->setCellValue("D{$actualGrandRow}", 1.0);

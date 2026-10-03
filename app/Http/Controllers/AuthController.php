@@ -54,6 +54,8 @@ class AuthController extends Controller
                 ->with('success', 'Selamat datang kembali, '.$user->name);
         }
 
+        ActivityLogger::log('FAILED_LOGIN', 'Percobaan masuk/login gagal untuk email: '.$request->input('email').'.');
+
         return back()->withErrors([
             'email' => 'Email atau kata sandi yang Anda masukkan salah.',
         ])->with('error', 'Email atau kata sandi yang Anda masukkan salah.')->onlyInput('email');

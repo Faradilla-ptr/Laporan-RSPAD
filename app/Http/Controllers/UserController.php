@@ -15,6 +15,8 @@ class UserController extends Controller
 {
     public function index()
     {
+        ActivityLogger::log('VIEW_USERS', 'Admin melihat halaman Kelola Pengguna & Permohonan Akun.');
+
         $pendingUsers = User::where('is_approved', false)->latest()->get();
         $pendingProfileRequests = ProfileRequest::with('user')->where('status', 'pending')->latest()->get();
         $approvedUsers = User::where('is_approved', true)->latest()->paginate(10);

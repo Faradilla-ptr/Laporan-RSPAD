@@ -3,12 +3,15 @@
 namespace App\Http\Controllers;
 
 use App\Models\ActivityLog;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 
 class ActivityLogController extends Controller
 {
     public function index(Request $request)
     {
+        ActivityLogger::log('VIEW_ACTIVITY_LOGS', 'Admin melihat Log Aktivitas Sistem (Trail Log).'.($request->filled('search') ? ' Cari: '.$request->search : ''));
+
         $query = ActivityLog::with('user')->latest();
 
         if ($request->filled('search')) {

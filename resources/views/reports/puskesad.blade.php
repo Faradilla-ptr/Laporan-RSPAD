@@ -84,38 +84,65 @@
                 </tr>
             </thead>
             <tbody>
-                @foreach($reportData as $groupName => $items)
-                <!-- Group Header -->
-                <tr class="fw-bold bg-white">
-                    <td colspan="6" class="text-uppercase text-dark ps-3 py-2" style="font-size: 0.95rem;">
-                        {{ $groupName }}
-                    </td>
-                </tr>
+                @php $no = 1; @endphp
+                @foreach($statusCategories as $groupName => $groupMeta)
+                @php
+                    $hasSubtotal = $groupMeta['has_subtotal'];
+                    $items = $groupMeta['items'];
+                    $cleanGroupName = preg_replace('/^\d+\.\s*/', '', $groupName);
+                @endphp
 
-                @foreach($items as $label => $data)
-                <tr>
-                    <td></td>
-                    <td class="ps-4 fw-medium text-dark">{{ $label }}</td>
-                    <td class="text-center text-dark">{{ number_format($data['pengunjung']) }}</td>
-                    <td class="text-center text-secondary">{{ $data['pengunjung_pct'] }}%</td>
-                    <td class="text-center fw-medium text-dark">{{ number_format($data['kunjungan']) }}</td>
-                    <td class="text-center text-secondary">{{ $data['kunjungan_pct'] }}%</td>
-                </tr>
-                @endforeach
+                @if($hasSubtotal)
+                    <!-- Category Header with NO -->
+                    <tr class="fw-bold bg-white">
+                        <td class="text-center text-dark fw-bold">{{ $no }}</td>
+                        <td colspan="5" class="text-uppercase text-dark py-2" style="font-size: 0.9rem;">
+                            {{ $cleanGroupName }}
+                        </td>
+                    </tr>
 
-                <!-- Subtotal Row -->
-                <tr class="fw-bold bg-white">
-                    <td colspan="2" class="text-end text-dark">SUB TOTAL {{ strtoupper($groupName) }}:</td>
-                    <td class="text-center text-dark fw-bold">{{ number_format($subTotals[$groupName]['pengunjung']) }}</td>
-                    <td class="text-center text-dark fw-bold">{{ round(($subTotals[$groupName]['pengunjung'] / max(1, $totalPengunjungAll)) * 100, 2) }}%</td>
-                    <td class="text-center text-dark fw-bold">{{ number_format($subTotals[$groupName]['kunjungan']) }}</td>
-                    <td class="text-center text-dark fw-bold">{{ round(($subTotals[$groupName]['kunjungan'] / max(1, $totalKunjunganAll)) * 100, 2) }}%</td>
-                </tr>
+                    @foreach($items as $label => $sysStatus)
+                    @php $data = $reportData[$groupName][$label]; @endphp
+                    <tr>
+                        <td></td>
+                        <td class="ps-4 fw-medium text-dark">{{ $label }}</td>
+                        <td class="text-center text-dark">{{ number_format($data['pengunjung']) }}</td>
+                        <td class="text-center text-secondary">{{ $data['pengunjung_pct'] }}%</td>
+                        <td class="text-center fw-medium text-dark">{{ number_format($data['kunjungan']) }}</td>
+                        <td class="text-center text-secondary">{{ $data['kunjungan_pct'] }}%</td>
+                    </tr>
+                    @endforeach
+
+                    <!-- Subtotal Row -->
+                    <tr class="fw-bold bg-white border-top">
+                        <td></td>
+                        <td class="text-end text-dark pe-3">SUB TOTAL</td>
+                        <td class="text-center text-dark fw-bold">{{ number_format($subTotals[$groupName]['pengunjung']) }}</td>
+                        <td class="text-center text-dark fw-bold">{{ $subTotals[$groupName]['pengunjung_pct'] }}%</td>
+                        <td class="text-center text-dark fw-bold">{{ number_format($subTotals[$groupName]['kunjungan']) }}</td>
+                        <td class="text-center text-dark fw-bold">{{ $subTotals[$groupName]['kunjungan_pct'] }}%</td>
+                    </tr>
+                @else
+                    <!-- Single Category Row -->
+                    @foreach($items as $label => $sysStatus)
+                    @php $data = $reportData[$groupName][$label]; @endphp
+                    <tr class="fw-semibold">
+                        <td class="text-center text-dark fw-bold">{{ $no }}</td>
+                        <td class="text-dark">{{ $cleanGroupName }}</td>
+                        <td class="text-center text-dark">{{ number_format($data['pengunjung']) }}</td>
+                        <td class="text-center text-secondary">{{ $data['pengunjung_pct'] }}%</td>
+                        <td class="text-center fw-medium text-dark">{{ number_format($data['kunjungan']) }}</td>
+                        <td class="text-center text-secondary">{{ $data['kunjungan_pct'] }}%</td>
+                    </tr>
+                    @endforeach
+                @endif
+
+                @php $no++; @endphp
                 @endforeach
             </tbody>
             <tfoot class="fw-bold text-center bg-white">
                 <tr>
-                    <td colspan="2" class="text-end text-dark">GRAND TOTAL SELURUH PELAYANAN:</td>
+                    <td colspan="2" class="text-end text-dark">JUMLAH:</td>
                     <td class="text-dark fw-bold">{{ number_format($totalPengunjungAll) }}</td>
                     <td class="text-dark fw-bold">100%</td>
                     <td class="text-dark fw-bold">{{ number_format($totalKunjunganAll) }}</td>

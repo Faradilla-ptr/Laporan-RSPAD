@@ -62,7 +62,19 @@
                         </span>
                     </td>
                     <td class="text-center">
-                        <span class="badge bg-light text-dark border px-2 py-1 fw-bold" style="font-size: 0.73rem;">
+                        @php
+                            $actionClass = match(true) {
+                                str_contains($log->action, 'LOGIN') && !str_contains($log->action, 'FAILED') => 'bg-success text-white',
+                                str_contains($log->action, 'LOGOUT') => 'bg-secondary text-white',
+                                str_contains($log->action, 'FAILED') || str_contains($log->action, 'DELETE') || str_contains($log->action, 'TRUNCATE') || str_contains($log->action, 'REJECT') => 'bg-danger text-white',
+                                str_contains($log->action, 'IMPORT') => 'bg-info text-dark',
+                                str_contains($log->action, 'EXPORT') => 'bg-success text-white',
+                                str_contains($log->action, 'UPDATE') || str_contains($log->action, 'APPROVE') => 'bg-warning text-dark',
+                                str_contains($log->action, 'VIEW') => 'bg-light text-dark border',
+                                default => 'bg-light text-dark border',
+                            };
+                        @endphp
+                        <span class="badge {{ $actionClass }} px-2 py-1 fw-bold" style="font-size: 0.73rem;">
                             {{ $log->action }}
                         </span>
                     </td>

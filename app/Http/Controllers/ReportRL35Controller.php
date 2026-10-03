@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\RawVisit;
+use App\Services\ActivityLogger;
 use App\Services\ExcelReportExporter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,8 @@ class ReportRL35Controller extends Controller
         $month = (string) $request->input('month', $defaultMonth);
         $year = (string) $request->input('year', $defaultYear);
         $poli = $request->input('poli', 'SEMUA');
+
+        ActivityLogger::log('VIEW_REPORT_RL35', "Melihat Laporan RL 3.5 (Kunjungan Poliklinik) Periode {$month}/{$year}, Poliklinik: {$poli}.");
 
         $polikliniks = RawVisit::whereNotNull('poliklinik')->where('poliklinik', '!=', '')->distinct('poliklinik')->pluck('poliklinik')->filter()->sort()->values();
 
@@ -299,6 +302,8 @@ class ReportRL35Controller extends Controller
         $year = (string) $request->input('year', $defaultYear);
         $poli = $request->input('poli', 'SEMUA');
 
+        ActivityLogger::log('EXPORT_RL35_EXCEL', "Mengunduh berkas Laporan RL 3.5 Excel Periode {$month}/{$year}, Poliklinik: {$poli}.");
+
         $poliSlug = ($poli && $poli !== 'SEMUA') ? preg_replace('/[^A-Za-z0-9_\-]/', '_', $poli) : 'SEMUA';
         $filename = "Laporan_RL_3.5_RSPAD_{$month}_{$year}_{$poliSlug}.xlsx";
 
@@ -326,6 +331,8 @@ class ReportRL35Controller extends Controller
             ->where('poliklinik', $poliklinik)
             ->update(['poliklinik' => $newPoliklinik]);
 
+        ActivityLogger::log('UPDATE_RL35_DATA', "Memperbarui nama Poliklinik dari '{$poliklinik}' menjadi '{$newPoliklinik}' ({$updatedCount} data terupdate, Periode {$month}/{$year}).");
+
         return back()->with('success', "Berhasil memperbarui nama Poliklinik dari '{$poliklinik}' menjadi '{$newPoliklinik}' ({$updatedCount} data terupdate).");
     }
 
@@ -347,6 +354,8 @@ class ReportRL35Controller extends Controller
         $deletedCount = RawVisit::whereBetween('tgl_berobat', [$startDate, $endDate])
             ->where('poliklinik', $poliklinik)
             ->delete();
+
+        ActivityLogger::log('DELETE_RL35_DATA', "Menghapus {$deletedCount} data kunjungan untuk Poliklinik '{$poliklinik}' (Periode {$month}/{$year}).");
 
         return back()->with('success', "Berhasil menghapus {$deletedCount} data kunjungan untuk Poliklinik '{$poliklinik}' pada periode ini.");
     }

@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ImportLog;
 use App\Models\RawVisit;
+use App\Services\ActivityLogger;
 use App\Services\ExcelReportExporter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
@@ -17,6 +18,8 @@ class ImportController extends Controller
 {
     public function index()
     {
+        ActivityLogger::log('VIEW_IMPORTS', 'Melihat halaman Riwayat Import Berkas Excel.');
+
         $importLogs = ImportLog::with('user')->latest()->paginate(10);
 
         return view('imports.index', compact('importLogs'));
@@ -227,6 +230,8 @@ class ImportController extends Controller
 
             $importLog->update(['total_rows' => $count]);
 
+            ActivityLogger::log('IMPORT_EXCEL', "Berhasil mengimpor berkas Excel '{$file->getClientOriginalName()}' (Periode {$request->period_month}/{$request->period_year}) sebanyak {$count} data kunjungan.");
+
             $spreadsheet->disconnectWorksheets();
             unset($spreadsheet);
 
@@ -259,6 +264,8 @@ class ImportController extends Controller
         // 4. Delete the import log record
         $importLog->delete();
 
+        ActivityLogger::log('DELETE_IMPORT', "Menghapus log impor '{$filename}' dan {$deletedVisits} data kunjungannya.");
+
         return back()->with('success', "Log impor '{$filename}' dan {$deletedVisits} data kunjungannya berhasil dihapus.");
     }
 
@@ -274,6 +281,8 @@ class ImportController extends Controller
 
         // 3. Clear export file cache
         ExcelReportExporter::clearCache();
+
+        ActivityLogger::log('TRUNCATE_IMPORTS', 'Mengosongkan seluruh data impor dan kunjungan raw_visits.');
 
         return back()->with('success', 'Seluruh data impor dan kunjungan berhasil dikosongkan (0 data). Anda dapat mengunggah berkas Excel baru.');
     }

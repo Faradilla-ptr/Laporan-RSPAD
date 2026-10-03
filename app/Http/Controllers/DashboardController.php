@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\ImportLog;
 use App\Models\RawVisit;
+use App\Services\ActivityLogger;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 
@@ -18,6 +19,8 @@ class DashboardController extends Controller
         $month = (string) $request->input('month', $defaultMonth);
         $year = (string) $request->input('year', $defaultYear);
         $chartFilter = $request->input('chart_filter', 'SEMUA'); // SEMUA, KUNJUNGAN, PENGUNJUNG
+
+        ActivityLogger::log('VIEW_DASHBOARD', 'Melihat Dashboard Statistik '.($month !== 'SEMUA' ? 'Bulan '.$month : 'Semua Bulan').' Tahun '.$year.'.');
 
         $query = RawVisit::query();
 

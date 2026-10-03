@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\RawVisit;
+use App\Services\ActivityLogger;
 use App\Services\ExcelReportExporter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -18,6 +19,8 @@ class ReportRL34Controller extends Controller
         $month = (string) $request->input('month', $defaultMonth);
         $year = (string) $request->input('year', $defaultYear);
         $poli = $request->input('poli', 'SEMUA');
+
+        ActivityLogger::log('VIEW_REPORT_RL34', "Melihat Laporan RL 3.4 (Pengunjung Rumah Sakit) Periode {$month}/{$year}, Poliklinik: {$poli}.");
 
         $polikliniks = RawVisit::whereNotNull('poliklinik')->where('poliklinik', '!=', '')->distinct('poliklinik')->pluck('poliklinik')->filter()->sort()->values();
 
@@ -118,6 +121,8 @@ class ReportRL34Controller extends Controller
         $year = (string) $request->input('year', $defaultYear);
         $poli = $request->input('poli', 'SEMUA');
 
+        ActivityLogger::log('EXPORT_RL34_EXCEL', "Mengunduh berkas Laporan RL 3.4 Excel Periode {$month}/{$year}, Poliklinik: {$poli}.");
+
         $poliSlug = ($poli && $poli !== 'SEMUA') ? preg_replace('/[^A-Za-z0-9_\-]/', '_', $poli) : 'SEMUA';
         $filename = "Laporan_RL_3.4_RSPAD_{$month}_{$year}_{$poliSlug}.xlsx";
 
@@ -151,6 +156,8 @@ class ReportRL34Controller extends Controller
 
         $updatedCount = $query->update(['status_pasien' => $newStatus]);
 
+        ActivityLogger::log('UPDATE_RL34_DATA', "Memperbarui {$updatedCount} data status pengunjung dari '{$statusPasien}' menjadi '{$newStatus}' (Periode {$month}/{$year}, Poli: {$poli}).");
+
         return back()->with('success', "Berhasil memperbarui {$updatedCount} data status pengunjung dari '{$statusPasien}' menjadi '{$newStatus}'.");
     }
 
@@ -178,6 +185,8 @@ class ReportRL34Controller extends Controller
         }
 
         $deletedCount = $query->delete();
+
+        ActivityLogger::log('DELETE_RL34_DATA', "Menghapus {$deletedCount} data pengunjung status '{$statusPasien}' (Periode {$month}/{$year}, Poli: {$poli}).");
 
         return back()->with('success', "Berhasil menghapus {$deletedCount} data pengunjung '{$statusPasien}' pada periode ini.");
     }

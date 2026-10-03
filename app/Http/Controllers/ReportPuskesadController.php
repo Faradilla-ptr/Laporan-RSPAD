@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\RawVisit;
+use App\Services\ActivityLogger;
 use App\Services\ExcelReportExporter;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -19,6 +20,8 @@ class ReportPuskesadController extends Controller
         $year = (string) $request->input('year', $defaultYear);
         $poli = $request->input('poli', 'SEMUA');
 
+        ActivityLogger::log('VIEW_REPORT_PUSKESAD', "Melihat Laporan Rawat Jalan Dinas Puskesad Periode {$month}/{$year}, Poliklinik: {$poli}.");
+
         $polikliniks = RawVisit::whereNotNull('poliklinik')->where('poliklinik', '!=', '')->distinct('poliklinik')->pluck('poliklinik')->filter()->sort()->values();
 
         $query = RawVisit::query();
@@ -33,40 +36,97 @@ class ReportPuskesadController extends Controller
         $totalKunjunganAll = max(1, $allVisits->count());
         $totalPengunjungAll = max(1, $allVisits->pluck('no_rm')->unique()->count());
 
-        // Define exact ordered list of Puskesad status categories
+        // Define exact ordered list of 10 Puskesad status categories matching official report format
         $statusCategories = [
             '1. JKN AKTIF' => [
-                'TNI AD' => 'TNI AD',
-                'PNS AD' => 'PNS AD',
-                'KEL AD' => 'KEL AD',
-                'TNI AL' => 'TNI AL',
-                'PNS AL' => 'PNS AL',
-                'KEL AL' => 'KEL AL',
-                'TNI AU' => 'TNI AU',
-                'PNS AU' => 'PNS AU',
-                'KEL AU' => 'KEL AU',
-                'PPPK DINAS' => 'PPPK DINAS',
+                'has_subtotal' => true,
+                'items' => [
+                    'a. TNI AD' => 'TNI AD',
+                    'b. PNS AD' => 'PNS AD',
+                    'c. KEL AD' => 'KEL AD',
+                    'd. TNI AL' => 'TNI AL',
+                    'e. PNS AL' => 'PNS AL',
+                    'f. KEL AL' => 'KEL AL',
+                    'g. TNI AU' => 'TNI AU',
+                    'h. PNS AU' => 'PNS AU',
+                    'i. KEL AU' => 'KEL AU',
+                    'j. PPPK DINAS' => 'PPPK DINAS',
+                ],
             ],
-            '2. NON-DINAS / LAINNYA' => [
-                'JKN POLRI' => 'JKN POLRI',
-                'PURNAWIRAWAN' => 'PURNAWIRAWAN',
-                'BPJS KEMENTERIAN / SWASTA' => 'BPJS KEMENTERIAN / SWASTA',
-                'BPJS PBI' => 'BPJS PBI',
-                'ASURANSI / LAINNYA' => 'ASURANSI / LAIN-LAIN',
-                'TUNAI / UMUM' => 'TUNAI',
+            '2. JKN POLRI' => [
+                'has_subtotal' => true,
+                'items' => [
+                    'a. POLRI' => 'POLRI',
+                    'b. PNS POLRI' => 'PNS POLRI',
+                    'c. KEL POLRI' => 'KEL POLRI',
+                ],
+            ],
+            '3. JKN PURNAWIRAWAN' => [
+                'has_subtotal' => false,
+                'items' => [
+                    'JKN PURNAWIRAWAN' => 'JKN PURNAWIRAWAN',
+                ],
+            ],
+            '4. JKN KEMENTERIAN' => [
+                'has_subtotal' => false,
+                'items' => [
+                    'JKN KEMENTERIAN' => 'JKN KEMENTERIAN',
+                ],
+            ],
+            '5. PPPK KEMENTERIAN' => [
+                'has_subtotal' => false,
+                'items' => [
+                    'PPPK KEMENTERIAN' => 'PPPK KEMENTERIAN',
+                ],
+            ],
+            '6. JKN UMUM' => [
+                'has_subtotal' => true,
+                'items' => [
+                    'a. PBI' => 'PBI',
+                    'b. MANDIRI' => 'MANDIRI',
+                    'c. TENAGA KERJA' => 'TENAGA KERJA',
+                ],
+            ],
+            '7. SWASTA' => [
+                'has_subtotal' => false,
+                'items' => [
+                    'SWASTA' => 'SWASTA',
+                ],
+            ],
+            '8. JAMINAN RSPAD' => [
+                'has_subtotal' => false,
+                'items' => [
+                    'JAMINAN RSPAD' => 'JAMINAN RSPAD',
+                ],
+            ],
+            '9. BAKSOS' => [
+                'has_subtotal' => false,
+                'items' => [
+                    'BAKSOS' => 'BAKSOS',
+                ],
+            ],
+            '10. ASURANSI' => [
+                'has_subtotal' => false,
+                'items' => [
+                    'ASURANSI' => 'ASURANSI',
+                ],
             ],
         ];
 
         // Process statistics per category
         $reportData = [];
-        $subTotals = [
-            '1. JKN AKTIF' => ['pengunjung' => 0, 'kunjungan' => 0],
-            '2. NON-DINAS / LAINNYA' => ['pengunjung' => 0, 'kunjungan' => 0],
-        ];
+        $subTotals = [];
 
-        foreach ($statusCategories as $groupName => $items) {
-            foreach ($items as $label => $sysStatus) {
-                // Filter visits matching sysStatus
+        foreach ($statusCategories as $groupName => $groupMeta) {
+            $subTotals[$groupName] = [
+                'has_subtotal' => $groupMeta['has_subtotal'],
+                'pengunjung' => 0,
+                'pengunjung_pct' => 0,
+                'kunjungan' => 0,
+                'kunjungan_pct' => 0,
+            ];
+
+            foreach ($groupMeta['items'] as $label => $sysStatus) {
                 $matchingVisits = $allVisits->filter(function ($v) use ($sysStatus) {
                     return $v->status_puskesad === $sysStatus;
                 });
@@ -87,6 +147,9 @@ class ReportPuskesadController extends Controller
                 $subTotals[$groupName]['pengunjung'] += $pengunjungCount;
                 $subTotals[$groupName]['kunjungan'] += $kunjunganCount;
             }
+
+            $subTotals[$groupName]['pengunjung_pct'] = round(($subTotals[$groupName]['pengunjung'] / $totalPengunjungAll) * 100, 2);
+            $subTotals[$groupName]['kunjungan_pct'] = round(($subTotals[$groupName]['kunjungan'] / $totalKunjunganAll) * 100, 2);
         }
 
         $yearExpr = DB::connection()->getDriverName() === 'sqlite' ? "strftime('%Y', tgl_berobat) as y" : 'YEAR(tgl_berobat) as y';
@@ -108,6 +171,7 @@ class ReportPuskesadController extends Controller
             'year',
             'poli',
             'polikliniks',
+            'statusCategories',
             'reportData',
             'subTotals',
             'totalPengunjungAll',
@@ -153,6 +217,8 @@ class ReportPuskesadController extends Controller
         $month = (string) $request->input('month', $defaultMonth);
         $year = (string) $request->input('year', $defaultYear);
         $poli = $request->input('poli', 'SEMUA');
+
+        ActivityLogger::log('EXPORT_PUSKESAD_EXCEL', "Mengunduh berkas Laporan Rawat Jalan Dinas Puskesad Excel Periode {$month}/{$year}, Poliklinik: {$poli}.");
 
         $poliSlug = ($poli && $poli !== 'SEMUA') ? preg_replace('/[^A-Za-z0-9_\-]/', '_', $poli) : 'SEMUA';
         $filename = "Laporan_Rawat_Jalan_Dinas_Puskesad_{$month}_{$year}_{$poliSlug}.xlsx";
