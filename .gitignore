@@ -33,16 +33,21 @@
 /*.xls
 /*.xlsx
 /*.jpeg
+/*.drawio
+/*.py
 /logo rspad.jpg
 /extracted/
 /rspad-file/
 /diagrams/
+/draw io fix/
+
 # Temporary Test & Scratch Scripts
 /scratch/
 /check_active_db.php
 /check_db_count.php
-/import_all_real_data.php
+/dfd_level_0.drawio
 /import_3_months_data.py
+/import_all_real_data.php
 /populate_kelompok.php
 /test_connections.php
 /test_generated_export.xlsx

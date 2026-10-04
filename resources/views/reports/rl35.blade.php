@@ -105,16 +105,65 @@
                 @endforelse
             </tbody>
             <tfoot class="fw-bold bg-white">
-                <tr>
-                    <td colspan="3" class="text-end text-dark">TOTAL SELURUH KUNJUNGAN:</td>
+                <tr class="table-light">
+                    <td colspan="3" class="text-end text-dark">99. TOTAL SELURUH KUNJUNGAN:</td>
                     <td class="text-center text-dark fw-bold">{{ number_format(array_sum(array_column($poliData, 'dalam_kota_l'))) }}</td>
                     <td class="text-center text-dark fw-bold">{{ number_format(array_sum(array_column($poliData, 'dalam_kota_p'))) }}</td>
                     <td class="text-center text-dark fw-bold">{{ number_format(array_sum(array_column($poliData, 'luar_kota_l'))) }}</td>
                     <td class="text-center text-dark fw-bold">{{ number_format(array_sum(array_column($poliData, 'luar_kota_p'))) }}</td>
-                    <td class="text-center text-dark fw-bold fs-5">{{ number_format($totalKunjunganAll) }}</td>
+                    <td class="text-center text-dark fw-bold fs-6">{{ number_format($totalKunjunganAll) }}</td>
+                </tr>
+                <tr>
+                    <td colspan="7" class="text-end text-secondary align-middle">
+                        66. Rata-Rata Hari Poliklinik Buka:
+                        @if(isset($isWorkDaysOverridden) && $isWorkDaysOverridden)
+                            <span class="badge bg-warning text-dark font-monospace ms-1" style="font-size: 0.7rem;">Diset Manual</span>
+                        @endif
+                    </td>
+                    <td class="text-center text-primary fw-bold align-middle">
+                        <div class="d-flex align-items-center justify-content-center gap-2">
+                            <span>{{ number_format($workDays, ($workDays == (int)$workDays ? 0 : 1)) }} Hari</span>
+                            <button type="button" class="btn btn-sm btn-outline-primary py-0 px-2" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#editWorkDaysModal">Ubah</button>
+                        </div>
+                    </td>
+                </tr>
+                <tr>
+                    <td colspan="7" class="text-end text-secondary">77. Rata-Rata Kunjungan per Hari:</td>
+                    <td class="text-center text-success fw-bold fs-6">{{ number_format($avgPerDay, 1) }}</td>
                 </tr>
             </tfoot>
         </table>
+    </div>
+</div>
+
+<!-- EDIT WORK DAYS MODAL (BARIS 66) -->
+<div class="modal fade text-start" id="editWorkDaysModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <form action="{{ route('reports.rl35.workDays') }}" method="POST" class="modal-content">
+            @csrf
+            @method('PUT')
+            <input type="hidden" name="month" value="{{ $month }}">
+            <input type="hidden" name="year" value="{{ $year }}">
+
+            <div class="modal-header" style="background-color: #588b8b; color: white;">
+                <h5 class="modal-title fs-6 fw-bold">Ubah Rata-Rata Hari Poliklinik Buka (Baris 66)</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p class="small text-muted mb-3">
+                    Ubah jumlah hari kerja poliklinik buka pada periode <strong>{{ $availableMonths[$month] ?? $month }} {{ $year }}</strong>. Angka ini akan digunakan sebagai pembagi untuk menghitung <em>Rata-Rata Kunjungan per Hari (Baris 77)</em>.
+                </p>
+                <div class="mb-3">
+                    <label class="form-label fw-semibold">Jumlah Hari Poliklinik Buka:</label>
+                    <input type="number" step="0.5" min="1" max="31" name="work_days" class="form-control" value="{{ $workDays }}" required>
+                    <div class="form-text">Contoh: 22 atau 24.</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-sm btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="submit" class="btn btn-sm text-white" style="background-color: #588b8b;">Simpan Perubahan</button>
+            </div>
+        </form>
     </div>
 </div>
 

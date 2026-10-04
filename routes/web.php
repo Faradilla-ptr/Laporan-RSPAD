@@ -55,6 +55,7 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/reports/rl35', fn () => $getRolePath('reports/rl35'))->name('reports.rl35');
     Route::get('/reports/rl35/export', [ReportRL35Controller::class, 'exportExcel'])->name('reports.rl35.export');
     Route::put('/reports/rl35', [ReportRL35Controller::class, 'update'])->middleware('throttle:30,1')->name('reports.rl35.update');
+    Route::put('/reports/rl35/work-days', [ReportRL35Controller::class, 'updateWorkDays'])->middleware('throttle:30,1')->name('reports.rl35.workDays');
     Route::delete('/reports/rl35', [ReportRL35Controller::class, 'destroy'])->middleware('throttle:10,1')->name('reports.rl35.destroy');
 
     Route::get('/reports/puskesad', fn () => $getRolePath('reports/puskesad'))->name('reports.puskesad');
@@ -78,6 +79,7 @@ Route::middleware(['auth'])->group(function () {
             Route::get('/reports/rl35', [ReportRL35Controller::class, 'index'])->name('reports.rl35');
             Route::get('/reports/rl35/export', [ReportRL35Controller::class, 'exportExcel'])->name('reports.rl35.export');
             Route::put('/reports/rl35', [ReportRL35Controller::class, 'update'])->middleware('throttle:30,1')->name('reports.rl35.update');
+            Route::put('/reports/rl35/work-days', [ReportRL35Controller::class, 'updateWorkDays'])->middleware('throttle:30,1')->name('reports.rl35.workDays');
             Route::delete('/reports/rl35', [ReportRL35Controller::class, 'destroy'])->middleware('throttle:10,1')->name('reports.rl35.destroy');
 
             Route::get('/reports/puskesad', [ReportPuskesadController::class, 'index'])->name('reports.puskesad');

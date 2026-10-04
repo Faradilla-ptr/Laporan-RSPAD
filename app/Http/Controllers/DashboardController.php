@@ -49,9 +49,31 @@ class DashboardController extends Controller
 
         // Key Metrics
         $totalKunjungan = (clone $query)->count();
-        $totalPengunjung = (clone $query)->distinct('no_rm')->count('no_rm');
-        $pengunjungBaru = (clone $query)->where('status_pasien', 'Pasien Baru')->distinct('no_rm')->count('no_rm');
-        $pengunjungLama = (clone $query)->where('status_pasien', 'Pasien Lama')->distinct('no_rm')->count('no_rm');
+        $totalPengunjung = (clone $query)->whereNotNull('no_rm')->where('no_rm', '!=', '')->distinct('no_rm')->count('no_rm');
+
+        $baruRms = (clone $query)
+            ->where(function ($q) {
+                $q->where('status_pasien', 'Pasien Baru')
+                    ->orWhere('status_pasien', 'BARU')
+                    ->orWhere('status_pasien', 'B');
+            })
+            ->whereNotNull('no_rm')
+            ->where('no_rm', '!=', '')
+            ->distinct()
+            ->pluck('no_rm')
+            ->toArray();
+
+        $pengunjungBaru = count($baruRms);
+
+        $pengunjungLama = (clone $query)
+            ->where(function ($q) {
+                $q->where('status_pasien', 'Pasien Lama')
+                    ->orWhere('status_pasien', 'LAMA')
+                    ->orWhere('status_pasien', 'L');
+            })
+            ->whereNotIn('no_rm', $baruRms)
+            ->distinct('no_rm')
+            ->count('no_rm');
 
         // TNI AD & Dinas vs BPJS & Umum Breakdown
         $totalMiliterTni = (clone $query)->whereIn('kelompok', [

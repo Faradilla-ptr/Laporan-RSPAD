@@ -4,6 +4,7 @@ namespace App\Services;
 
 use App\Http\Controllers\ReportRL35Controller;
 use App\Models\RawVisit;
+use App\Models\WorkDayOverride;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
@@ -412,16 +413,16 @@ class ExcelReportExporter
         $start1 = $rPus;
 
         $items1 = [
-            '1a' => 'a. TNI AD',
-            '1b' => 'b. PNS AD',
-            '1c' => 'c. KEL AD',
-            '1d' => 'd. TNI AL',
-            '1e' => 'e. PNS AL',
-            '1f' => 'f. KEL AL',
-            '1g' => 'g. TNI AU',
-            '1h' => 'h. PNS AU',
-            '1i' => 'i. KEL AU',
-            '1j' => 'j. PPPK DINAS',
+            '1a' => 'TNI AD',
+            '1b' => 'PNS AD',
+            '1c' => 'KEL AD',
+            '1d' => 'TNI AL',
+            '1e' => 'PNS AL',
+            '1f' => 'KEL AL',
+            '1g' => 'TNI AU',
+            '1h' => 'PNS AU',
+            '1i' => 'KEL AU',
+            '1j' => 'PPPK DINAS',
         ];
 
         foreach ($items1 as $key => $lbl) {
@@ -455,9 +456,9 @@ class ExcelReportExporter
         $start2 = $rPus;
 
         $items2 = [
-            '2a' => 'a. POLRI',
-            '2b' => 'b. PNS POLRI',
-            '2c' => 'c. KEL POLRI',
+            '2a' => 'POLRI',
+            '2b' => 'PNS POLRI',
+            '2c' => 'KEL POLRI',
         ];
 
         foreach ($items2 as $key => $lbl) {
@@ -511,9 +512,9 @@ class ExcelReportExporter
         $start6 = $rPus;
 
         $items6 = [
-            '6a' => 'a. PBI',
-            '6b' => 'b. MANDIRI',
-            '6c' => 'c. TENAGA KERJA',
+            '6a' => 'PBI',
+            '6b' => 'MANDIRI',
+            '6c' => 'TENAGA KERJA',
         ];
 
         foreach ($items6 as $key => $lbl) {
@@ -1319,7 +1320,7 @@ class ExcelReportExporter
         foreach ($poliDataRaw as $row) {
             $stdName = ReportRL35Controller::normalizePoliToStandard($row->poliklinik);
             if (! isset($poliDataMap[$stdName])) {
-                $stdName = 'Lain-Lain';
+                $stdName = 'Lain – Lain';
             }
             $poliDataMap[$stdName]['dalam_l'] += (int) $row->dalam_l;
             $poliDataMap[$stdName]['dalam_p'] += (int) $row->dalam_p;
@@ -1352,7 +1353,7 @@ class ExcelReportExporter
         }
 
         $endRowS = $rS - 1;
-        $sheetSummary->setCellValue("A{$rS}", 'TOTAL SELURUH KUNJUNGAN');
+        $sheetSummary->setCellValue("A{$rS}", '99. TOTAL SELURUH KUNJUNGAN');
         if ($endRowS >= 6) {
             $sheetSummary->setCellValue("C{$rS}", "=SUM(C6:C{$endRowS})");
             $sheetSummary->setCellValue("D{$rS}", "=SUM(D6:D{$endRowS})");
@@ -1367,6 +1368,31 @@ class ExcelReportExporter
             $sheetSummary->setCellValue("G{$rS}", 0);
         }
         $sheetSummary->getStyle("A{$rS}:G{$rS}")->getFont()->setBold(true);
+
+        $override = WorkDayOverride::where('month', $m)->where('year', $y)->first();
+        if ($override) {
+            $workDays = (float) $override->work_days;
+        } else {
+            $workDays = max(1, (clone $query)->distinct('tgl_berobat')->count('tgl_berobat'));
+        }
+
+        $totalKunjunganAll = (clone $query)->select('no_rm', 'tgl_berobat')->whereNotNull('no_rm')->where('no_rm', '!=', '')->distinct()->count();
+        if ($totalKunjunganAll === 0) {
+            $totalKunjunganAll = (clone $query)->count();
+        }
+
+        $avgPerDay = round($totalKunjunganAll / $workDays, 1);
+
+        $rS++;
+        $sheetSummary->setCellValue("A{$rS}", '66. RATA-RATA HARI POLIKLINIK BUKA');
+        $sheetSummary->setCellValue("G{$rS}", $workDays);
+        $sheetSummary->getStyle("A{$rS}:G{$rS}")->getFont()->setBold(true);
+
+        $rS++;
+        $sheetSummary->setCellValue("A{$rS}", '77. RATA-RATA KUNJUNGAN PER HARI');
+        $sheetSummary->setCellValue("G{$rS}", $avgPerDay);
+        $sheetSummary->getStyle("A{$rS}:G{$rS}")->getFont()->setBold(true);
+
         $sheetSummary->getStyle("A5:G{$rS}")->getBorders()->getAllBorders()->setBorderStyle(Border::BORDER_THIN);
         self::autoFitColumns($sheetSummary, 'A', 'G');
 

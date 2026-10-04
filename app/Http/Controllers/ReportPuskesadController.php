@@ -41,24 +41,24 @@ class ReportPuskesadController extends Controller
             '1. JKN AKTIF' => [
                 'has_subtotal' => true,
                 'items' => [
-                    'a. TNI AD' => 'TNI AD',
-                    'b. PNS AD' => 'PNS AD',
-                    'c. KEL AD' => 'KEL AD',
-                    'd. TNI AL' => 'TNI AL',
-                    'e. PNS AL' => 'PNS AL',
-                    'f. KEL AL' => 'KEL AL',
-                    'g. TNI AU' => 'TNI AU',
-                    'h. PNS AU' => 'PNS AU',
-                    'i. KEL AU' => 'KEL AU',
-                    'j. PPPK DINAS' => 'PPPK DINAS',
+                    'TNI AD' => 'TNI AD',
+                    'PNS AD' => 'PNS AD',
+                    'KEL AD' => 'KEL AD',
+                    'TNI AL' => 'TNI AL',
+                    'PNS AL' => 'PNS AL',
+                    'KEL AL' => 'KEL AL',
+                    'TNI AU' => 'TNI AU',
+                    'PNS AU' => 'PNS AU',
+                    'KEL AU' => 'KEL AU',
+                    'PPPK DINAS' => 'PPPK DINAS',
                 ],
             ],
             '2. JKN POLRI' => [
                 'has_subtotal' => true,
                 'items' => [
-                    'a. POLRI' => 'POLRI',
-                    'b. PNS POLRI' => 'PNS POLRI',
-                    'c. KEL POLRI' => 'KEL POLRI',
+                    'POLRI' => 'POLRI',
+                    'PNS POLRI' => 'PNS POLRI',
+                    'KEL POLRI' => 'KEL POLRI',
                 ],
             ],
             '3. JKN PURNAWIRAWAN' => [
@@ -82,9 +82,9 @@ class ReportPuskesadController extends Controller
             '6. JKN UMUM' => [
                 'has_subtotal' => true,
                 'items' => [
-                    'a. PBI' => 'PBI',
-                    'b. MANDIRI' => 'MANDIRI',
-                    'c. TENAGA KERJA' => 'TENAGA KERJA',
+                    'PBI' => 'PBI',
+                    'MANDIRI' => 'MANDIRI',
+                    'TENAGA KERJA' => 'TENAGA KERJA',
                 ],
             ],
             '7. SWASTA' => [

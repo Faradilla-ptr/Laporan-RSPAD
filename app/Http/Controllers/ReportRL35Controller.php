@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\RawVisit;
+use App\Models\WorkDayOverride;
 use App\Services\ActivityLogger;
 use App\Services\ExcelReportExporter;
 use Illuminate\Http\Request;
@@ -31,7 +32,14 @@ class ReportRL35Controller extends Controller
             $query->where('poliklinik', $poli);
         }
 
-        $workDays = max(1, (clone $query)->distinct('tgl_berobat')->count('tgl_berobat'));
+        $override = WorkDayOverride::where('month', $month)->where('year', $year)->first();
+        if ($override) {
+            $workDays = (float) $override->work_days;
+            $isWorkDaysOverridden = true;
+        } else {
+            $workDays = max(1, (clone $query)->distinct('tgl_berobat')->count('tgl_berobat'));
+            $isWorkDaysOverridden = false;
+        }
 
         $stdList = self::getStandardPoliList();
 
@@ -75,7 +83,6 @@ class ReportRL35Controller extends Controller
             $poliDataMap[$stdName]['luar_kota_p'] += (int) $row->luar_kota_p;
             $poliDataMap[$stdName]['total'] += (int) $row->total;
 
-            $totalKunjunganAll += (int) $row->total;
         }
 
         $poliData = array_values($poliDataMap);
@@ -86,6 +93,12 @@ class ReportRL35Controller extends Controller
                 return strcasecmp($item['poliklinik'], $matchedStd) === 0 || strcasecmp($item['poliklinik'], $poli) === 0;
             });
             $poliData = array_values($poliData);
+        }
+
+        // Deduplicated total hospital visits per patient per day according to Juknis 6.3 Hal 37 Point 2
+        $totalKunjunganAll = (clone $query)->select('no_rm', 'tgl_berobat')->whereNotNull('no_rm')->where('no_rm', '!=', '')->distinct()->count();
+        if ($totalKunjunganAll === 0) {
+            $totalKunjunganAll = array_sum(array_column($poliData, 'total'));
         }
 
         $avgPerDay = round($totalKunjunganAll / $workDays, 1);
@@ -112,9 +125,34 @@ class ReportRL35Controller extends Controller
             'poliData',
             'totalKunjunganAll',
             'workDays',
+            'isWorkDaysOverridden',
             'avgPerDay',
             'dbYears'
         ));
+    }
+
+    public function updateWorkDays(Request $request)
+    {
+        $request->validate([
+            'month' => 'required|string',
+            'year' => 'required|string',
+            'work_days' => 'required|numeric|min:1|max:31',
+        ]);
+
+        $month = (string) $request->month;
+        $year = (string) $request->year;
+        $workDays = (float) $request->work_days;
+
+        WorkDayOverride::updateOrCreate(
+            ['month' => $month, 'year' => $year],
+            ['work_days' => $workDays]
+        );
+
+        ExcelReportExporter::clearCache();
+
+        ActivityLogger::log('UPDATE_RL35_WORK_DAYS', "Memperbarui Rata-Rata Hari Poliklinik Buka (Baris 66) menjadi {$workDays} Hari untuk Periode {$month}/{$year}.");
+
+        return back()->with('success', "Berhasil memperbarui Rata-Rata Hari Poliklinik Buka (Baris 66) menjadi {$workDays} Hari pada periode ini.");
     }
 
     public static function getStandardPoliList()
@@ -122,38 +160,38 @@ class ReportRL35Controller extends Controller
         return [
             '1' => 'Penyakit Dalam',
             '2' => 'Bedah',
-            '3' => 'Kesehatan Anak',
-            '4' => 'Obstetri & Ginekologi',
-            '5' => 'Saraf',
-            '6' => 'Jiwa',
-            '7' => 'THT-KL',
-            '8' => 'Mata',
-            '9' => 'Kulit & Kelamin',
-            '10' => 'Gigi & Mulut',
-            '11' => 'Jantung & Pembuluh Darah',
-            '12' => 'Paru',
-            '13' => 'Bedah Saraf',
-            '14' => 'Bedah Anak',
-            '15' => 'Bedah Plastik',
-            '16' => 'Bedah Ortopedi',
-            '17' => 'Bedah Urologi',
-            '18' => 'Bedah Vaskuler',
-            '19' => 'Bedah Thoraks',
-            '20' => 'Bedah Digestif',
-            '21' => 'Bedah Tumor / Onkologi',
-            '22' => 'Gizi Klinik',
-            '23' => 'Rehabilitasi Medis',
-            '24' => 'Akupunktur Medis',
-            '25' => 'Radioterapi',
-            '26' => 'Kedokteran Nuklir',
-            '27' => 'Anestesiologi & Terapi Intensif',
-            '28' => 'Kedokteran Jiwa / Psikiatri',
-            '29' => 'General Check Up (MCU)',
-            '30' => 'Geriatri',
-            '31' => 'Konsultasi Psikologi',
-            '32' => 'VCT / HIV-AIDS',
-            '33' => 'TB-DOTS',
-            '34' => 'Lain-Lain',
+            '3' => 'Kesehatan Anak (Neonatal)',
+            '4' => 'Kesehatan Anak (Lainnya)',
+            '5' => 'Obstetri & Ginekologi (Ibu Hamil)',
+            '6' => 'Obstetri & Ginekologi (Lainnya)',
+            '7' => 'Keluarga Berencana',
+            '8' => 'Jiwa',
+            '9' => 'Napza',
+            '10' => 'Psikologi',
+            '11' => 'THT',
+            '12' => 'Mata',
+            '13' => 'Kulit dan Kelamin',
+            '14' => 'Gigi & Mulut',
+            '15' => 'Geriatri',
+            '16' => 'Kardiologi',
+            '17' => 'Radiologi',
+            '18' => 'Bedah Orthopedi',
+            '19' => 'Paru - Paru',
+            '20' => 'Kanker',
+            '21' => 'Uronefrologi',
+            '22' => 'Kusta',
+            '23' => 'Umum',
+            '24' => 'Rawat Darurat',
+            '25' => 'Rehabilitasi Medik',
+            '26' => 'Akupungtur Medik',
+            '27' => 'Konsultasi Gizi',
+            '28' => 'Day Care',
+            '29' => 'Medical Check Up',
+            '30' => 'Bedah Saraf (Stroke)',
+            '31' => 'Bedah Saraf (Lainnya)',
+            '32' => 'Saraf (Stroke)',
+            '33' => 'Saraf (Lainnya)',
+            '34' => 'Lain – Lain',
         ];
     }
 
@@ -161,107 +199,114 @@ class ReportRL35Controller extends Controller
     {
         $p = strtoupper(trim((string) $rawPoli));
         if (empty($p)) {
-            return 'Lain-Lain';
+            return 'Lain – Lain';
         }
 
         if (str_contains($p, 'PENYAKIT DALAM') || $p === 'PD') {
             return 'Penyakit Dalam';
         }
-        if (str_contains($p, 'DIGEST')) {
-            return 'Bedah Digestif';
-        }
         if (str_contains($p, 'ORTO')) {
-            return 'Bedah Ortopedi';
-        }
-        if (str_contains($p, 'PLASTIK')) {
-            return 'Bedah Plastik';
-        }
-        if (str_contains($p, 'THORA')) {
-            return 'Bedah Thoraks';
-        }
-        if (str_contains($p, 'TUMOR') || str_contains($p, 'ONKOLOGI')) {
-            return 'Bedah Tumor / Onkologi';
-        }
-        if (str_contains($p, 'UROLOGI') || str_contains($p, 'URO')) {
-            return 'Bedah Urologi';
-        }
-        if (str_contains($p, 'VASKULER')) {
-            return 'Bedah Vaskuler';
-        }
-        if (str_contains($p, 'BEDAH ANAK')) {
-            return 'Bedah Anak';
+            return 'Bedah Orthopedi';
         }
         if (str_contains($p, 'BEDAH SARAF') || $p === 'B. SARAF') {
-            return 'Bedah Saraf';
+            if (str_contains($p, 'STROKE')) {
+                return 'Bedah Saraf (Stroke)';
+            }
+
+            return 'Bedah Saraf (Lainnya)';
         }
         if (str_contains($p, 'BEDAH')) {
             return 'Bedah';
         }
-        if (str_contains($p, 'ANAK')) {
-            return 'Kesehatan Anak';
+        if (str_contains($p, 'ANAK') || str_contains($p, 'PEDIATRI')) {
+            if (str_contains($p, 'NEONATAL') || str_contains($p, 'BAYI') || str_contains($p, 'NEO')) {
+                return 'Kesehatan Anak (Neonatal)';
+            }
+
+            return 'Kesehatan Anak (Lainnya)';
         }
         if (str_contains($p, 'OBGIN') || str_contains($p, 'OBSTETRI') || str_contains($p, 'GINEKOLOGI')) {
-            return 'Obstetri & Ginekologi';
+            if (str_contains($p, 'HAMIL') || str_contains($p, 'ANC') || str_contains($p, 'MATERNAL')) {
+                return 'Obstetri & Ginekologi (Ibu Hamil)';
+            }
+
+            return 'Obstetri & Ginekologi (Lainnya)';
         }
-        if (str_contains($p, 'SARAF') || str_contains($p, 'NEUROLOGI')) {
-            return 'Saraf';
+        if (str_contains($p, 'KB') || str_contains($p, 'KELUARGA BERENCANA')) {
+            return 'Keluarga Berencana';
+        }
+        if (str_contains($p, 'NAPZA') || str_contains($p, 'NARKIS')) {
+            return 'Napza';
+        }
+        if (str_contains($p, 'PSIKOLOGI')) {
+            return 'Psikologi';
+        }
+        if (str_contains($p, 'JIWA') || str_contains($p, 'PSIKIATRI')) {
+            return 'Jiwa';
         }
         if (str_contains($p, 'THT')) {
-            return 'THT-KL';
+            return 'THT';
         }
         if (str_contains($p, 'MATA')) {
             return 'Mata';
         }
         if (str_contains($p, 'KULIT') || str_contains($p, 'KELAMIN')) {
-            return 'Kulit & Kelamin';
+            return 'Kulit dan Kelamin';
         }
         if (str_contains($p, 'GIGI') || str_contains($p, 'MULUT')) {
             return 'Gigi & Mulut';
         }
-        if (str_contains($p, 'JANTUNG') || str_contains($p, 'KARDIO')) {
-            return 'Jantung & Pembuluh Darah';
-        }
-        if (str_contains($p, 'PARU')) {
-            return 'Paru';
-        }
-        if (str_contains($p, 'GIZI')) {
-            return 'Gizi Klinik';
-        }
-        if (str_contains($p, 'REHAB') || str_contains($p, 'FISIOTERAPI')) {
-            return 'Rehabilitasi Medis';
-        }
-        if (str_contains($p, 'AKUPUNKTUR')) {
-            return 'Akupunktur Medis';
-        }
-        if (str_contains($p, 'RADIOTERAPI')) {
-            return 'Radioterapi';
-        }
-        if (str_contains($p, 'NUKLIR')) {
-            return 'Kedokteran Nuklir';
-        }
-        if (str_contains($p, 'ANESTESI')) {
-            return 'Anestesiologi & Terapi Intensif';
-        }
-        if (str_contains($p, 'JIWA') || str_contains($p, 'PSIKIATRI')) {
-            return 'Jiwa';
-        }
-        if (str_contains($p, 'CHECK UP') || str_contains($p, 'MCU')) {
-            return 'General Check Up (MCU)';
-        }
         if (str_contains($p, 'GERIATRI')) {
             return 'Geriatri';
         }
-        if (str_contains($p, 'PSIKOLOGI')) {
-            return 'Konsultasi Psikologi';
+        if (str_contains($p, 'JANTUNG') || str_contains($p, 'KARDIO')) {
+            return 'Kardiologi';
         }
-        if (str_contains($p, 'HIV') || str_contains($p, 'VCT')) {
-            return 'VCT / HIV-AIDS';
+        if (str_contains($p, 'RADIOLOGI')) {
+            return 'Radiologi';
         }
-        if (str_contains($p, 'TB') || str_contains($p, 'DOTS')) {
-            return 'TB-DOTS';
+        if (str_contains($p, 'PARU')) {
+            return 'Paru - Paru';
+        }
+        if (str_contains($p, 'KANKER') || str_contains($p, 'ONKOLOGI')) {
+            return 'Kanker';
+        }
+        if (str_contains($p, 'UROLOGI') || str_contains($p, 'URONEFROLOGI') || str_contains($p, 'URO')) {
+            return 'Uronefrologi';
+        }
+        if (str_contains($p, 'KUSTA')) {
+            return 'Kusta';
+        }
+        if (str_contains($p, 'IGD') || str_contains($p, 'EMERGENCY') || str_contains($p, 'RAWAT DARURAT')) {
+            return 'Rawat Darurat';
+        }
+        if (str_contains($p, 'UMUM')) {
+            return 'Umum';
+        }
+        if (str_contains($p, 'REHAB') || str_contains($p, 'FISIOTERAPI')) {
+            return 'Rehabilitasi Medik';
+        }
+        if (str_contains($p, 'AKUPUNKTUR')) {
+            return 'Akupungtur Medik';
+        }
+        if (str_contains($p, 'GIZI')) {
+            return 'Konsultasi Gizi';
+        }
+        if (str_contains($p, 'DAY CARE') || str_contains($p, 'DAYCARE')) {
+            return 'Day Care';
+        }
+        if (str_contains($p, 'CHECK UP') || str_contains($p, 'MCU')) {
+            return 'Medical Check Up';
+        }
+        if (str_contains($p, 'SARAF') || str_contains($p, 'NEUROLOGI')) {
+            if (str_contains($p, 'STROKE')) {
+                return 'Saraf (Stroke)';
+            }
+
+            return 'Saraf (Lainnya)';
         }
 
-        return 'Lain-Lain';
+        return 'Lain – Lain';
     }
 
     private function applyDateFilter($query, $month, $year)

@@ -31,9 +31,31 @@ class ReportRL34Controller extends Controller
             $query->where('poliklinik', $poli);
         }
 
-        // Deduplication Logic for RL 3.4
-        $pengunjungBaru = (clone $query)->where('status_pasien', 'Pasien Baru')->distinct('no_rm')->count('no_rm');
-        $pengunjungLama = (clone $query)->where('status_pasien', 'Pasien Lama')->distinct('no_rm')->count('no_rm');
+        // Deduplication Logic for RL 3.4 (Strict unique patient count per period - Juknis 6.3)
+        $baruRms = (clone $query)
+            ->where(function ($q) {
+                $q->where('status_pasien', 'Pasien Baru')
+                    ->orWhere('status_pasien', 'BARU')
+                    ->orWhere('status_pasien', 'B');
+            })
+            ->whereNotNull('no_rm')
+            ->where('no_rm', '!=', '')
+            ->distinct()
+            ->pluck('no_rm')
+            ->toArray();
+
+        $pengunjungBaru = count($baruRms);
+
+        $pengunjungLama = (clone $query)
+            ->where(function ($q) {
+                $q->where('status_pasien', 'Pasien Lama')
+                    ->orWhere('status_pasien', 'LAMA')
+                    ->orWhere('status_pasien', 'L');
+            })
+            ->whereNotIn('no_rm', $baruRms)
+            ->distinct('no_rm')
+            ->count('no_rm');
+
         $totalPengunjung = $pengunjungBaru + $pengunjungLama;
 
         // Sample list of deduplicated patients for verification
@@ -53,7 +75,7 @@ class ReportRL34Controller extends Controller
             )
             ->groupBy('no_rm')
             ->orderBy('no_rm')
-            ->paginate(15)
+            ->paginate(50)
             ->withQueryString();
 
         $yearExpr = DB::connection()->getDriverName() === 'sqlite' ? "strftime('%Y', tgl_berobat) as y" : 'YEAR(tgl_berobat) as y';
