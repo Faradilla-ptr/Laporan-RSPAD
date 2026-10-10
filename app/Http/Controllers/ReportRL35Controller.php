@@ -6,58 +6,86 @@ use App\Models\RawVisit;
 use App\Models\WorkDayOverride;
 use App\Services\ActivityLogger;
 use App\Services\ExcelReportExporter;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
+use Illuminate\View\View;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
+/**
+ * Controller untuk mengelola Laporan RL 3.5 (Perincian Kunjungan Rawat Jalan).
+ * Mengolah data kunjungan per poliklinik sesuai standar formulir SIRS Kemenkes:
+ * memisahkan kunjungan pasien Dalam Kota (DKI Jakarta) vs Luar Kota berdasarkan jenis kelamin (L/P),
+ * memetakan nama poli rumah sakit ke 34 poli standar RL 3.5, serta menghitung rata-rata kunjungan per hari.
+ */
 class ReportRL35Controller extends Controller
 {
+    /**
+     * Menampilkan tabel laporan RL 3.5 berdasarkan filter periode dan poliklinik.
+     *
+     * @return View
+     */
     public function index(Request $request)
     {
+        // 1. Dapatkan tanggal berobat terbaru dari database sebagai patokan default filter
         $latestDate = RawVisit::max('tgl_berobat');
         $defaultMonth = $latestDate ? (string) date('n', strtotime($latestDate)) : (string) date('n');
         $defaultYear = $latestDate ? (string) date('Y', strtotime($latestDate)) : (string) date('Y');
 
+        // 2. Ambil parameter filter dari request pengguna
         $month = (string) $request->input('month', $defaultMonth);
         $year = (string) $request->input('year', $defaultYear);
         $poli = $request->input('poli', 'SEMUA');
 
+        // 3. Catat aktivitas akses laporan ke audit log
         ActivityLogger::log('VIEW_REPORT_RL35', "Melihat Laporan RL 3.5 (Kunjungan Poliklinik) Periode {$month}/{$year}, Poliklinik: {$poli}.");
 
+        // 4. Ambil daftar poliklinik unik dari database untuk pilihan dropdown filter
         $polikliniks = RawVisit::whereNotNull('poliklinik')->where('poliklinik', '!=', '')->distinct('poliklinik')->pluck('poliklinik')->filter()->sort()->values();
 
+        // 5. Bangun query dasar kunjungan rawat jalan dan terapkan filter periode tanggal
         $query = RawVisit::query();
         $this->applyDateFilter($query, $month, $year);
 
+        // Jika user memilih poliklinik tertentu (bukan SEMUA), terapkan kondisi query
         if ($poli && $poli !== 'SEMUA') {
             $query->where('poliklinik', $poli);
         }
 
+        // 6. Tentukan jumlah hari kerja poliklinik buka:
+        // Cek apakah ada override manual dari admin untuk periode ini di tabel work_day_overrides
         $override = WorkDayOverride::where('month', $month)->where('year', $year)->first();
         if ($override) {
             $workDays = (float) $override->work_days;
             $isWorkDaysOverridden = true;
         } else {
+            // Jika tidak ada override, hitung jumlah tanggal unik berobat dari database (minimal 1 hari)
             $workDays = max(1, (clone $query)->distinct('tgl_berobat')->count('tgl_berobat'));
             $isWorkDaysOverridden = false;
         }
 
+        // 7. Ambil daftar 34 poliklinik standar formulir RL 3.5 Kemenkes RI
         $stdList = self::getStandardPoliList();
 
+        // Siapkan struktur array penampung data untuk setiap poli standar
         $poliDataMap = [];
         foreach ($stdList as $num => $stdName) {
             $poliDataMap[$stdName] = [
                 'no' => (int) $num,
                 'poliklinik' => $stdName,
-                'dalam_kota_l' => 0,
-                'dalam_kota_p' => 0,
-                'luar_kota_l' => 0,
-                'luar_kota_p' => 0,
-                'total' => 0,
+                'dalam_kota_l' => 0, // Kunjungan Pasien Dalam Kota Laki-Laki
+                'dalam_kota_p' => 0, // Kunjungan Pasien Dalam Kota Perempuan
+                'luar_kota_l' => 0,  // Kunjungan Pasien Luar Kota Laki-Laki
+                'luar_kota_p' => 0,  // Kunjungan Pasien Luar Kota Perempuan
+                'total' => 0,        // Total Kunjungan Poli
             ];
         }
 
+        // 8. Ambil kondisi SQL untuk mendeteksi alamat Dalam Kota (wilayah DKI Jakarta)
         $dalamCond = RawVisit::getDalamKotaSqlCondition('alamat');
 
+        // 9. Agregasikan data kunjungan per poliklinik langsung dari query database
         $poliDataRaw = (clone $query)
             ->reorder()
             ->select(
@@ -71,6 +99,7 @@ class ReportRL35Controller extends Controller
             ->groupBy('poliklinik')
             ->get();
 
+        // 10. Lakukan pemetaan (mapping) nama poli database ke daftar poli standar RL 3.5
         $totalKunjunganAll = 0;
         foreach ($poliDataRaw as $row) {
             $stdName = self::normalizePoliToStandard($row->poliklinik);
@@ -82,11 +111,12 @@ class ReportRL35Controller extends Controller
             $poliDataMap[$stdName]['luar_kota_l'] += (int) $row->luar_kota_l;
             $poliDataMap[$stdName]['luar_kota_p'] += (int) $row->luar_kota_p;
             $poliDataMap[$stdName]['total'] += (int) $row->total;
-
         }
 
+        // Konversi map menjadi array berurutan
         $poliData = array_values($poliDataMap);
 
+        // Jika filter poliklinik tertentu aktif, saring data hanya untuk poliklinik terpilih
         if ($poli && $poli !== 'SEMUA') {
             $matchedStd = self::normalizePoliToStandard($poli);
             $poliData = array_filter($poliData, function ($item) use ($matchedStd, $poli) {
@@ -95,14 +125,16 @@ class ReportRL35Controller extends Controller
             $poliData = array_values($poliData);
         }
 
-        // Deduplicated total hospital visits per patient per day according to Juknis 6.3 Hal 37 Point 2
+        // 11. Hitung deduplikasi total kunjungan rumah sakit per pasien per hari sesuai Juknis SIRS 6.3 Hal 37 Poin 2
         $totalKunjunganAll = (clone $query)->select('no_rm', 'tgl_berobat')->whereNotNull('no_rm')->where('no_rm', '!=', '')->distinct()->count();
         if ($totalKunjunganAll === 0) {
             $totalKunjunganAll = array_sum(array_column($poliData, 'total'));
         }
 
+        // 12. Hitung rata-rata kunjungan per hari (Total Kunjungan dibagi Hari Kerja Buka)
         $avgPerDay = round($totalKunjunganAll / $workDays, 1);
 
+        // 13. Ambil daftar tahun yang tersedia untuk filter dropdown
         $yearExpr = DB::connection()->getDriverName() === 'sqlite' ? "strftime('%Y', tgl_berobat) as y" : 'YEAR(tgl_berobat) as y';
         $dbYears = RawVisit::selectRaw($yearExpr)
             ->whereNotNull('tgl_berobat')
@@ -117,6 +149,7 @@ class ReportRL35Controller extends Controller
             $dbYears = [2024, 2025, 2026];
         }
 
+        // 14. Kirim seluruh data ke view tampilan laporan RL 3.5
         return view('reports.rl35', compact(
             'month',
             'year',
@@ -131,8 +164,14 @@ class ReportRL35Controller extends Controller
         ));
     }
 
+    /**
+     * Memperbarui jumlah hari kerja poliklinik buka secara manual (Override Hari Kerja).
+     *
+     * @return RedirectResponse
+     */
     public function updateWorkDays(Request $request)
     {
+        // Validasi input bulan, tahun, dan jumlah hari kerja (1 sampai 31 hari)
         $request->validate([
             'month' => 'required|string',
             'year' => 'required|string',
@@ -143,18 +182,27 @@ class ReportRL35Controller extends Controller
         $year = (string) $request->year;
         $workDays = (float) $request->work_days;
 
+        // Simpan atau perbarui nilai override hari kerja di database
         WorkDayOverride::updateOrCreate(
             ['month' => $month, 'year' => $year],
             ['work_days' => $workDays]
         );
 
+        // Bersihkan cache file Excel agar hasil export sinkron dengan perubahan nilai hari kerja
         ExcelReportExporter::clearCache();
 
+        // Catat perubahan ke audit log
         ActivityLogger::log('UPDATE_RL35_WORK_DAYS', "Memperbarui Rata-Rata Hari Poliklinik Buka (Baris 66) menjadi {$workDays} Hari untuk Periode {$month}/{$year}.");
 
+        // Kembali dengan notifikasi sukses
         return back()->with('success', "Berhasil memperbarui Rata-Rata Hari Poliklinik Buka (Baris 66) menjadi {$workDays} Hari pada periode ini.");
     }
 
+    /**
+     * Mendapatkan daftar 34 nama poliklinik standar resmi RL 3.5 Kemenkes RI.
+     *
+     * @return array<string, string>
+     */
     public static function getStandardPoliList()
     {
         return [
@@ -195,6 +243,13 @@ class ReportRL35Controller extends Controller
         ];
     }
 
+    /**
+     * Melakukan normalisasi/mapping nama poliklinik mentah dari SIMRS RSPAD
+     * menjadi salah satu dari 34 kategori poliklinik standar RL 3.5.
+     *
+     * @param  string|null  $rawPoli
+     * @return string
+     */
     public static function normalizePoliToStandard($rawPoli)
     {
         $p = strtoupper(trim((string) $rawPoli));
@@ -202,6 +257,7 @@ class ReportRL35Controller extends Controller
             return 'Lain – Lain';
         }
 
+        // Pengecekan kata kunci spesifik poliklinik
         if (str_contains($p, 'PENYAKIT DALAM') || $p === 'PD') {
             return 'Penyakit Dalam';
         }
@@ -306,17 +362,28 @@ class ReportRL35Controller extends Controller
             return 'Saraf (Lainnya)';
         }
 
+        // Jika tidak cocok dengan pola kata kunci di atas, masukkan ke kategori Lain-Lain
         return 'Lain – Lain';
     }
 
+    /**
+     * Menerapkan filter tahun dan bulan (termasuk Triwulan/Semester) ke instance Eloquent Query.
+     *
+     * @param  Builder  $query
+     * @param  string  $month
+     * @param  string  $year
+     * @return Builder
+     */
     private function applyDateFilter($query, $month, $year)
     {
+        // Filter tahun
         if ($year !== 'SEMUA') {
             $query->whereYear('tgl_berobat', (int) $year);
         }
 
+        // Filter bulan / Triwulan / Semester
         if ($month === 'SEMUA') {
-            // All months
+            // Seluruh bulan
         } elseif (in_array($month, ['T1', 'T2', 'T3', 'T4', 'S1', 'S2'])) {
             $ranges = [
                 'T1' => [1, 3], 'T2' => [4, 6], 'T3' => [7, 9], 'T4' => [10, 12],
@@ -337,6 +404,11 @@ class ReportRL35Controller extends Controller
         return $query;
     }
 
+    /**
+     * Mengunduh / export data laporan RL 3.5 ke dalam format berkas Excel (.xlsx).
+     *
+     * @return BinaryFileResponse
+     */
     public function exportExcel(Request $request)
     {
         $latestDate = RawVisit::max('tgl_berobat');
@@ -347,14 +419,22 @@ class ReportRL35Controller extends Controller
         $year = (string) $request->input('year', $defaultYear);
         $poli = $request->input('poli', 'SEMUA');
 
+        // Catat aktivitas ekspor ke audit log
         ActivityLogger::log('EXPORT_RL35_EXCEL', "Mengunduh berkas Laporan RL 3.5 Excel Periode {$month}/{$year}, Poliklinik: {$poli}.");
 
+        // Format nama berkas Excel yang akan diunduh
         $poliSlug = ($poli && $poli !== 'SEMUA') ? preg_replace('/[^A-Za-z0-9_\-]/', '_', $poli) : 'SEMUA';
         $filename = "Laporan_RL_3.5_RSPAD_{$month}_{$year}_{$poliSlug}.xlsx";
 
+        // Panggil service ExcelReportExporter untuk membuat file Excel
         return ExcelReportExporter::exportRL35($month, $year, $filename, $poli);
     }
 
+    /**
+     * Memperbarui nama poliklinik untuk semua kunjungan pada periode bulan dan tahun tertentu.
+     *
+     * @return RedirectResponse
+     */
     public function update(Request $request)
     {
         $request->validate([
@@ -369,18 +449,26 @@ class ReportRL35Controller extends Controller
         $poliklinik = $request->poliklinik;
         $newPoliklinik = $request->new_poliklinik;
 
+        // Susun rentang tanggal awal dan akhir bulan
         $startDate = sprintf('%04d-%02d-01', $year, $month);
         $endDate = date('Y-m-t', strtotime($startDate));
 
+        // Eksekusi pembaruan data poliklinik
         $updatedCount = RawVisit::whereBetween('tgl_berobat', [$startDate, $endDate])
             ->where('poliklinik', $poliklinik)
             ->update(['poliklinik' => $newPoliklinik]);
 
+        // Catat aktivitas update ke audit log
         ActivityLogger::log('UPDATE_RL35_DATA', "Memperbarui nama Poliklinik dari '{$poliklinik}' menjadi '{$newPoliklinik}' ({$updatedCount} data terupdate, Periode {$month}/{$year}).");
 
         return back()->with('success', "Berhasil memperbarui nama Poliklinik dari '{$poliklinik}' menjadi '{$newPoliklinik}' ({$updatedCount} data terupdate).");
     }
 
+    /**
+     * Menghapus semua kunjungan untuk suatu poliklinik pada periode bulan dan tahun tertentu.
+     *
+     * @return RedirectResponse
+     */
     public function destroy(Request $request)
     {
         $request->validate([
@@ -393,13 +481,16 @@ class ReportRL35Controller extends Controller
         $year = (int) $request->year;
         $poliklinik = $request->poliklinik;
 
+        // Susun rentang tanggal awal dan akhir bulan
         $startDate = sprintf('%04d-%02d-01', $year, $month);
         $endDate = date('Y-m-t', strtotime($startDate));
 
+        // Eksekusi penghapusan data
         $deletedCount = RawVisit::whereBetween('tgl_berobat', [$startDate, $endDate])
             ->where('poliklinik', $poliklinik)
             ->delete();
 
+        // Catat aktivitas penghapusan ke audit log
         ActivityLogger::log('DELETE_RL35_DATA', "Menghapus {$deletedCount} data kunjungan untuk Poliklinik '{$poliklinik}' (Periode {$month}/{$year}).");
 
         return back()->with('success', "Berhasil menghapus {$deletedCount} data kunjungan untuk Poliklinik '{$poliklinik}' pada periode ini.");

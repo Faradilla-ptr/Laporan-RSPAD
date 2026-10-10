@@ -5,19 +5,37 @@ namespace App\Services;
 use App\Http\Controllers\ReportRL35Controller;
 use App\Models\RawVisit;
 use App\Models\WorkDayOverride;
+use Illuminate\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 use PhpOffice\PhpSpreadsheet\Cell\Coordinate;
 use PhpOffice\PhpSpreadsheet\Spreadsheet;
 use PhpOffice\PhpSpreadsheet\Style\Alignment;
 use PhpOffice\PhpSpreadsheet\Style\Border;
 use PhpOffice\PhpSpreadsheet\Style\Fill;
+use PhpOffice\PhpSpreadsheet\Worksheet\Worksheet;
 use PhpOffice\PhpSpreadsheet\Writer\Xlsx;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
+/**
+ * Service untuk men-generate dan mengekspor seluruh laporan ke dalam format Microsoft Excel (.xlsx).
+ * Menggunakan library PhpSpreadsheet untuk menyusun formula SUM, styling cell, pewarnaan header,
+ * pembuatan multiple sheet (Summary, Pivot, Data Detail), dan manajemen caching berkas unduhan.
+ */
 class ExcelReportExporter
 {
+    /**
+     * Mendapatkan path direktori cache berkas Excel agar ekspor berulang berjalan cepat tanpa hitung ulang.
+     *
+     * @param  string  $type  Jenis laporan ('puskesad', 'rl34', 'rl35')
+     * @param  string  $month  Filter bulan
+     * @param  string  $year  Filter tahun
+     * @param  string|null  $poli  Filter poliklinik
+     * @return string
+     */
     private static function getCachePath($type, $month, $year, $poli)
     {
         $dir = storage_path('app/exports');
+        // Buat folder exports jika belum ada
         if (! is_dir($dir)) {
             @mkdir($dir, 0777, true);
         }
@@ -26,6 +44,12 @@ class ExcelReportExporter
         return "{$dir}/{$type}_{$month}_{$year}_{$pSlug}.xlsx";
     }
 
+    /**
+     * Menghapus seluruh berkas cache Excel di direktori storage/app/exports.
+     * Dipanggil otomatis saat ada data baru di-import, data di-update, atau override hari kerja diubah.
+     *
+     * @return void
+     */
     public static function clearCache()
     {
         $dir = storage_path('app/exports');
@@ -37,8 +61,17 @@ class ExcelReportExporter
         }
     }
 
+    /**
+     * Mengubah kode filter bulan dan tahun menjadi teks label bahasa Indonesia yang ramah pembaca.
+     * Contoh: '1' dan '2024' -> 'Januari 2024', 'T1' -> 'Triwulan I (Jan - Mar) 2024'.
+     *
+     * @param  string|int  $month
+     * @param  string|int  $year
+     * @return string
+     */
     public static function getPeriodText($month, $year)
     {
+        // Pemetaan angka bulan atau kode periode ke nama bulan bahasa Indonesia
         $monthsMap = [
             'SEMUA' => 'Seluruh Bulan',
             '1' => 'Januari', '2' => 'Februari', '3' => 'Maret', '4' => 'April',
@@ -63,6 +96,14 @@ class ExcelReportExporter
         return "{$mText} {$yText}";
     }
 
+    /**
+     * Menghasilkan teks rentang tanggal awal s/d akhir berdasarkan pilihan periode bulan dan tahun.
+     * Contoh: '01/01/2024 s/d 31/01/2024'.
+     *
+     * @param  string|int  $month
+     * @param  string|int  $year
+     * @return string
+     */
     public static function getPeriodDateRangeText($month, $year)
     {
         $yStr = ($year === 'SEMUA' || empty($year)) ? 'Semua Tahun' : (string) $year;
@@ -99,7 +140,10 @@ class ExcelReportExporter
     }
 
     /**
-     * Normalize Pasien Status to 'Pasien Baru' or 'Pasien Lama'
+     * Menormalisasi string status pasien menjadi 'Pasien Baru' atau 'Pasien Lama'.
+     *
+     * @param  string|null  $status
+     * @return string
      */
     public static function normalizeStatus($status)
     {
@@ -112,7 +156,10 @@ class ExcelReportExporter
     }
 
     /**
-     * Normalize Gender to 'L' or 'P'
+     * Menormalisasi jenis kelamin menjadi 'L' (Laki-laki) atau 'P' (Perempuan).
+     *
+     * @param  string|null  $gender
+     * @return string
      */
     public static function normalizeGender($gender)
     {
@@ -125,7 +172,10 @@ class ExcelReportExporter
     }
 
     /**
-     * Normalize Kelompok Name (splits PNS KEMHAN/TNI to PNS AD / AL / AU, KELUARGA MILITER to KEL AD)
+     * Menormalisasi nama kelompok pasien untuk tabel pivot (membedakan PNS AD / AL / AU, KEL AD, dll.).
+     *
+     * @param  mixed  $v  Model RawVisit atau array data kunjungan
+     * @return string
      */
     public static function normalizeKelompokName($v)
     {
@@ -194,7 +244,21 @@ class ExcelReportExporter
     }
 
     /**
-     * Full Output Export (All 7 Sheets for Laporan Puskesad / Full Report)
+     * Mengekspor seluruh 7 sheet lengkap Laporan Rawat Jalan Puskesad ke format Excel:
+     * Sheet 1: LAPORAN PUSKESAD (Rekapitulasi 10 Kategori Dinas Militer & Subtotal)
+     * Sheet 2: RL 3.4 (Rekapitulasi Pengunjung Pasien Baru & Pasien Lama)
+     * Sheet 3: JK (Tabel Pivot Jenis Kelamin Pasien)
+     * Sheet 4: PIVOT P (Tabel Pivot Pasien Berdasarkan Penjamin & Kelompok)
+     * Sheet 5: P (Rincian Seluruh Data Pengunjung Pasien Unik)
+     * Sheet 6: PIVOT K (Tabel Pivot Kunjungan Berdasarkan Status Pasien Baru/Lama)
+     * Sheet 7: K (Rincian Seluruh Data Transaksi Kunjungan Berobat)
+     *
+     * @param  string|int  $month
+     * @param  string|int  $year
+     * @param  string|null  $filename
+     * @param  string|null  $poli
+     * @param  string|null  $savePath
+     * @return BinaryFileResponse|null
      */
     public static function exportFullOutput($month, $year, $filename = null, $poli = null, $savePath = null)
     {
@@ -204,6 +268,7 @@ class ExcelReportExporter
         $m = (string) ($month ?: 'SEMUA');
         $y = (string) ($year ?: 'SEMUA');
 
+        // Periksa apakah berkas cache Excel hasil export sebelumnya sudah ada di penyimpanan lokal
         $cacheFile = self::getCachePath('puskesad', $m, $y, $poli);
 
         if (! $savePath && file_exists($cacheFile) && filesize($cacheFile) > 0) {
@@ -988,7 +1053,18 @@ class ExcelReportExporter
     }
 
     /**
-     * Export ONLY RL 3.4 (Pengunjung) Data & Sheets
+     * Mengekspor khusus Laporan RL 3.4 (Pengunjung Rumah Sakit) ke dalam format Excel:
+     * Sheet 1: RL 3.4 - Pengunjung (Tabel rekapitulasi jumlah pengunjung baru vs lama)
+     * Sheet 2: JK (Tabel pivot distribusi jenis kelamin pasien L/P)
+     * Sheet 3: PIVOT P (Tabel pivot distribusi penjamin dan kelompok pasien)
+     * Sheet 4: P (Daftar rincian lengkap seluruh data pengunjung pasien hasil deduplikasi No RM)
+     *
+     * @param  string|int  $month
+     * @param  string|int  $year
+     * @param  string|null  $filename
+     * @param  string|null  $poli
+     * @param  string|null  $savePath
+     * @return BinaryFileResponse|null
      */
     public static function exportRL34($month, $year, $filename = null, $poli = null, $savePath = null)
     {
@@ -998,6 +1074,7 @@ class ExcelReportExporter
         $m = (string) ($month ?: 'SEMUA');
         $y = (string) ($year ?: 'SEMUA');
 
+        // Cek berkas cache laporan RL 3.4
         $cacheFile = self::getCachePath('rl34', $m, $y, $poli);
 
         if (! $savePath && file_exists($cacheFile) && filesize($cacheFile) > 0) {
@@ -1227,7 +1304,17 @@ class ExcelReportExporter
     }
 
     /**
-     * Export ONLY RL 3.5 (Kunjungan Poli) Data & Sheets
+     * Mengekspor khusus Laporan RL 3.5 (Perincian Kunjungan Rawat Jalan per Poliklinik) ke format Excel:
+     * Sheet 1: RL 3.5 - Kunjungan Poli (Tabel 34 poli standar, Dalam/Luar Kota L/P, Baris 66 Hari Buka, Baris 77 Rata-Rata/Hari)
+     * Sheet 2: PIVOT K (Tabel pivot distribusi kunjungan baru/lama per penjamin dan kelompok)
+     * Sheet 3: K (Rincian lengkap seluruh data transaksi kunjungan berobat)
+     *
+     * @param  string|int  $month
+     * @param  string|int  $year
+     * @param  string|null  $filename
+     * @param  string|null  $poli
+     * @param  string|null  $savePath
+     * @return BinaryFileResponse|null
      */
     public static function exportRL35($month, $year, $filename = null, $poli = null, $savePath = null)
     {
@@ -1237,6 +1324,7 @@ class ExcelReportExporter
         $m = (string) ($month ?: 'SEMUA');
         $y = (string) ($year ?: 'SEMUA');
 
+        // Cek berkas cache laporan RL 3.5
         $cacheFile = self::getCachePath('rl35', $m, $y, $poli);
 
         if (! $savePath && file_exists($cacheFile) && filesize($cacheFile) > 0) {
@@ -1538,6 +1626,14 @@ class ExcelReportExporter
         ]);
     }
 
+    /**
+     * Mengatur lebar kolom secara otomatis (Auto-fit Column Width) dari kolom awal sampai kolom akhir.
+     *
+     * @param  Worksheet  $sheet
+     * @param  string  $startCol  Kolom awal (contoh: 'A')
+     * @param  string  $endCol  Kolom akhir (contoh: 'AE')
+     * @return void
+     */
     private static function autoFitColumns($sheet, $startCol, $endCol)
     {
         $startIdx = Coordinate::columnIndexFromString($startCol);
@@ -1549,6 +1645,13 @@ class ExcelReportExporter
         }
     }
 
+    /**
+     * Memformat objek kunjungan pasien menjadi baris array 31 kolom untuk sheet rincian data (Sheet P / K).
+     *
+     * @param  int  $idx  Nomor urut
+     * @param  object  $v  Objek record kunjungan pasien
+     * @return array<int, string|int>
+     */
     private static function formatDetailRow($idx, $v)
     {
         return [
@@ -1586,6 +1689,13 @@ class ExcelReportExporter
         ];
     }
 
+    /**
+     * Memformat objek kunjungan pasien menjadi baris array untuk sheet format rekapitulasi laporan SIMRS.
+     *
+     * @param  int  $idx
+     * @param  object  $v
+     * @return array<int, string|int>
+     */
     private static function formatLapRow($idx, $v)
     {
         return [
@@ -1623,6 +1733,14 @@ class ExcelReportExporter
         ];
     }
 
+    /**
+     * Menerapkan filter rentang waktu (bulan, tahun, Triwulan, Semester) pada Query Builder data raw_visits.
+     *
+     * @param  Builder  $query
+     * @param  string  $month
+     * @param  string  $year
+     * @return Builder
+     */
     private static function applyDateFilter($query, $month, $year)
     {
         $yearStr = (string) $year;
@@ -1633,7 +1751,7 @@ class ExcelReportExporter
         }
 
         if ($monthStr === 'SEMUA') {
-            // No month filter
+            // Tanpa filter bulan
         } elseif (in_array($monthStr, ['T1', 'T2', 'T3', 'T4', 'S1', 'S2'])) {
             $ranges = [
                 'T1' => [1, 3], 'T2' => [4, 6], 'T3' => [7, 9], 'T4' => [10, 12],

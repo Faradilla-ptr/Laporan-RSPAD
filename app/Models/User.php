@@ -10,6 +10,11 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 
+/**
+ * Model Pengguna (User) untuk Otentikasi dan Otorisasi Multi-Role.
+ * Mendukung role 'admin' (Kepala Urusan / Kaur) dan 'petugas' (Pengolah Data).
+ * Dilengkapi atribut persetujuan `is_approved` untuk membatasi akses login petugas baru sebelum divalidasi.
+ */
 #[Fillable(['name', 'email', 'password', 'role', 'is_approved', 'nip_nrp'])]
 #[Hidden(['password', 'remember_token'])]
 class User extends Authenticatable
@@ -18,7 +23,7 @@ class User extends Authenticatable
     use HasFactory, Notifiable;
 
     /**
-     * Get the attributes that should be cast.
+     * Konfigurasi tipe data casting otomatis untuk atribut model.
      *
      * @return array<string, string>
      */
@@ -26,8 +31,8 @@ class User extends Authenticatable
     {
         return [
             'email_verified_at' => 'datetime',
-            'password' => 'hashed',
-            'is_approved' => 'boolean',
+            'password' => 'hashed', // Hash password otomatis saat disimpan
+            'is_approved' => 'boolean', // Konversi status approval menjadi tipe boolean (true/false)
         ];
     }
 }

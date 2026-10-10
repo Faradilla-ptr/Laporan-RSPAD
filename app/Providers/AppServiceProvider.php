@@ -6,10 +6,14 @@ use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
+/**
+ * Service Provider Utama Aplikasi.
+ * Mendaftarkan konfigurasi bootstrap, styling paginator, dan variabel global blade view.
+ */
 class AppServiceProvider extends ServiceProvider
 {
     /**
-     * Register any application services.
+     * Mendaftarkan service atau binding ke service container aplikasi.
      */
     public function register(): void
     {
@@ -17,12 +21,14 @@ class AppServiceProvider extends ServiceProvider
     }
 
     /**
-     * Bootstrap any application services.
+     * Menginisialisasi service saat aplikasi dijalankan (bootstrapping).
      */
     public function boot(): void
     {
+        // Menggunakan styling Bootstrap 5 untuk render elemen pagination Laravel
         Paginator::useBootstrapFive();
 
+        // Membagikan variabel daftar opsi bulan / periode ($availableMonths) ke seluruh view blade secara global
         View::share('availableMonths', [
             'SEMUA' => 'Seluruh Bulan',
             '1' => 'Januari',

@@ -5,8 +5,18 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
+/**
+ * Model Eloquent untuk tabel `raw_visits`.
+ * Menyimpan seluruh data rekaman kunjungan pasien rawat jalan hasil import berkas SIMRS RSPAD.
+ * Berisi logika bisnis untuk klasifikasi wilayah (Dalam Kota vs Luar Kota) dan klasifikasi dinas militer Puskesad.
+ */
 class RawVisit extends Model
 {
+    /**
+     * Atribut-atribut tabel yang dapat diisi secara mass-assignment (Mass Assignable).
+     *
+     * @var array<int, string>
+     */
     protected $fillable = [
         'import_log_id',
         'no_rm',
@@ -41,24 +51,35 @@ class RawVisit extends Model
         'status_registrasi',
     ];
 
+    /**
+     * Relasi ke model ImportLog (setiap data kunjungan berasal dari satu proses import).
+     */
     public function importLog(): BelongsTo
     {
         return $this->belongsTo(ImportLog::class);
     }
 
     /**
-     * SQL condition string for identifying Dalam Kota (Jakarta Pusat only).
+     * Menghasilkan string klausa kondisi SQL untuk menyaring pasien "Dalam Kota" (Wilayah Jakarta Pusat).
+     * Berdasarkan kaidah pelaporan RSPAD:
+     * - Dalam Kota: Pasien yang beralamat di wilayah Jakarta Pusat (Gambir, Tanah Abang, Menteng, Senen, Cempaka Putih, Johar Baru, Kemayoran, Sawah Besar).
+     * - Luar Kota: Pasien dari wilayah Jakarta lainnya (Jaksel, Jaktim, Jakbar, Jakut, Kep. Seribu) dan luar DKI Jakarta.
+     *
+     * @param  string  $column  Nama kolom alamat (default: 'alamat')
+     * @return string String kondisi SQL untuk query builder
      */
     public static function getDalamKotaSqlCondition(string $column = 'alamat'): string
     {
         $col = "LOWER(COALESCE({$column}, ''))";
 
+        // Kata kunci kecamatan dan sebutan untuk Jakarta Pusat
         $pusatKeywords = [
             '%jakarta pusat%', '%jak-pus%', '%jakpus%', '%jak pus%', '%jakarta pst%', '%jak pst%',
             '%gambir%', '%tanah abang%', '%menteng%', '%senen%', '%cempaka putih%', '%johar baru%',
             '%kemayoran%', '%sawah besar%',
         ];
 
+        // Kata kunci wilayah Jakarta lainnya yang harus dikecualikan dari kategori Jakarta Pusat
         $otherKeywords = [
             '%jakarta selatan%', '%jak-sel%', '%jaksel%', '%jak sel%',
             '%jakarta timur%', '%jak-tim%', '%jaktim%', '%jak tim%',
@@ -67,6 +88,7 @@ class RawVisit extends Model
             '%kepulauan seribu%', '%p. seribu%', '%pulau seribu%',
         ];
 
+        // Rangkai query LIKE untuk Jakarta Pusat dan NOT LIKE untuk wilayah Jakarta lainnya
         $pusatLikes = implode(' OR ', array_map(fn ($k) => "{$col} LIKE '{$k}'", $pusatKeywords));
         $otherLikes = implode(' OR ', array_map(fn ($k) => "{$col} LIKE '{$k}'", $otherKeywords));
 
@@ -74,7 +96,10 @@ class RawVisit extends Model
     }
 
     /**
-     * Determines if patient is Dalam Kota (Jakarta Pusat) or Luar Kota based on address.
+     * Accessor: Menentukan apakah alamat pasien terkategori "Dalam Kota" (Jakarta Pusat) atau "Luar Kota".
+     * Dapat diakses langsung melalui atribut `$rawVisit->domisili`.
+     *
+     * @return string 'Dalam Kota' | 'Luar Kota'
      */
     public function getDomisiliAttribute(): string
     {
@@ -84,6 +109,7 @@ class RawVisit extends Model
             return 'Luar Kota';
         }
 
+        // Cek jika alamat mengandung wilayah Jakarta selain Jakarta Pusat
         $isOtherJakarta = (
             str_contains($a, 'JAKARTA SELATAN') || str_contains($a, 'JAK-SEL') || str_contains($a, 'JAKSEL') || str_contains($a, 'JAK SEL') || str_contains($a, 'JAKARTA STN') ||
             str_contains($a, 'JAKARTA TIMUR') || str_contains($a, 'JAK-TIM') || str_contains($a, 'JAKTIM') || str_contains($a, 'JAK TIM') || str_contains($a, 'JAKARTA TMR') ||
@@ -96,6 +122,7 @@ class RawVisit extends Model
             return 'Luar Kota';
         }
 
+        // Cek jika alamat cocok dengan kata kunci Jakarta Pusat
         $isJakartaPusat = (
             str_contains($a, 'JAKARTA PUSAT') ||
             str_contains($a, 'JAK-PUS') ||
@@ -117,7 +144,8 @@ class RawVisit extends Model
     }
 
     /**
-     * Categorizes patient into Puskesad Status Pasien group matching official Puskesad report format.
+     * Accessor: Mengklasifikasikan rekaman kunjungan ke salah satu dari status baku Laporan Dinas Puskesad.
+     * Dapat diakses langsung melalui atribut `$rawVisit->status_puskesad`.
      */
     public function getStatusPuskesadAttribute(): string
     {
