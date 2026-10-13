@@ -207,7 +207,7 @@ class ExcelReportExporter
         $pangkat = strtoupper(trim((string) (is_object($v) ? ($v->pangkat ?? '') : ($v['pangkat'] ?? ''))));
         $rm = trim((string) (is_object($v) ? ($v->no_rm ?? '') : ($v['no_rm'] ?? '')));
 
-        if (in_array($kelUpper, ['AD', 'AL', 'AU', 'KEL AD', 'KEL AL', 'KEL AU', 'PNS AD', 'PNS AL', 'PNS AU', 'MILITER TNI AD', 'PPPK DINAS', 'PPPK KEMENTRIAN', 'BPJS PBI', 'BPJS MANDIRI / SWASTA', 'UMUM / TUNAI', 'PURNAWIRAWAN', 'POLRI'])) {
+        if (in_array($kelUpper, ['AD', 'AL', 'AU', 'KEL AD', 'KEL AL', 'KEL AU', 'PNS AD', 'PNS AL', 'PNS AU', 'MILITER TNI AD', 'PPPK DINAS', 'PPPK KEMENTERIAN', 'PPPK KEMENTRIAN', 'PNS POLRI', 'KEL POLRI', 'BPJS PBI', 'BPJS MANDIRI / SWASTA', 'UMUM / TUNAI', 'PURNAWIRAWAN', 'POLRI'])) {
             return $kel;
         }
 
@@ -369,85 +369,137 @@ class ExcelReportExporter
             $pa = trim(strtoupper((string) ($v->pangkat ?? '')));
             $kat = trim(strtoupper((string) ($v->kategori ?? '')));
 
-            if ($kel === 'AD' || str_contains($kel, 'MILITER TNI AD') || str_contains($kel, 'TNI AD')) {
+            // 1. KHUSUS ASABRI DIMASUKKAN KE BPJS DINAS KELOMPOK AD
+            if ($pen === 'ASABRI' || str_contains($pen, 'ASABRI')) {
                 return '1a';
             }
-            if ($kel === 'PNS AD' || ($kel === 'PNS KEMHAN/TNI' && ! str_contains($kes, 'AL') && ! str_contains($ins, 'AL') && ! str_contains($kes, 'AU') && ! str_contains($ins, 'AU'))) {
-                return '1b';
-            }
-            if ($kel === 'KEL AD' || $kel === 'KELUARGA MILITER') {
-                return '1c';
-            }
 
-            if ($kel === 'AL' || str_contains($kel, 'TNI AL')) {
-                return '1d';
-            }
-            if ($kel === 'PNS AL' || ($kel === 'PNS KEMHAN/TNI' && (str_contains($kes, 'AL') || str_contains($ins, 'AL')))) {
-                return '1e';
-            }
-            if ($kel === 'KEL AL' || ($kel === 'KELUARGA MILITER' && (str_contains($kes, 'AL') || str_contains($ins, 'AL')))) {
-                return '1f';
-            }
+            // 2. CEK UTAMA PERTAMA KALI: BPJS DINAS
+            if ($pen === 'BPJS DINAS' || str_starts_with($pen, 'BPJS DINAS') || str_contains($pen, 'DINAS')) {
+                if ($kel === 'AD' || $kel === 'MILITER TNI AD' || str_contains($kel, 'TNI AD')) {
+                    return '1a';
+                }
+                if ($kel === 'PNS AD') {
+                    return '1b';
+                }
+                if ($kel === 'KEL AD' || $kel === 'KELUARGA MILITER') {
+                    return '1c';
+                }
+                if ($kel === 'AL' || str_contains($kel, 'TNI AL')) {
+                    return '1d';
+                }
+                if ($kel === 'PNS AL') {
+                    return '1e';
+                }
+                if ($kel === 'KEL AL') {
+                    return '1f';
+                }
+                if ($kel === 'AU' || str_contains($kel, 'TNI AU')) {
+                    return '1g';
+                }
+                if ($kel === 'PNS AU') {
+                    return '1h';
+                }
+                if ($kel === 'KEL AU') {
+                    return '1i';
+                }
 
-            if ($kel === 'AU' || str_contains($kel, 'TNI AU')) {
-                return '1g';
-            }
-            if ($kel === 'PNS AU' || ($kel === 'PNS KEMHAN/TNI' && (str_contains($kes, 'AU') || str_contains($ins, 'AU')))) {
-                return '1h';
-            }
-            if ($kel === 'KEL AU' || ($kel === 'KELUARGA MILITER' && (str_contains($kes, 'AU') || str_contains($ins, 'AU')))) {
-                return '1i';
-            }
-
-            if (str_contains($kel, 'PPPK DINAS') || str_contains($pa, 'PPPK DINAS')) {
-                return '1j';
-            }
-
-            if ($kel === 'POLRI' || str_contains($kel, 'POLRI') || str_contains($pen, 'POLRI')) {
+                // Fallback PNS di BPJS DINAS
                 if (str_contains($kel, 'PNS') || str_contains($pa, 'PNS')) {
-                    return '2b';
-                }
-                if (str_contains($kel, 'KEL') || str_contains($kat, 'KEL') || str_contains($kat, 'ANAK') || str_contains($kat, 'ISTRI')) {
-                    return '2c';
+                    if (str_contains($kes, 'AL') || str_contains($ins, 'AL')) {
+                        return '1e';
+                    }
+                    if (str_contains($kes, 'AU') || str_contains($ins, 'AU')) {
+                        return '1h';
+                    }
+
+                    return '1b';
                 }
 
-                return '2a';
+                // Fallback Keluarga di BPJS DINAS
+                if (str_contains($kel, 'KEL') || str_contains($kat, 'KELUARGA') || str_contains($kat, 'ISTRI') || str_contains($kat, 'ANAK') || str_contains($kat, 'SUAMI')) {
+                    if (str_contains($kes, 'AL') || str_contains($ins, 'AL')) {
+                        return '1f';
+                    }
+                    if (str_contains($kes, 'AU') || str_contains($ins, 'AU')) {
+                        return '1i';
+                    }
+
+                    return '1c';
+                }
+
+                // Fallback Matra AL / AU
+                if (str_contains($kes, 'AL') || str_contains($ins, 'AL')) {
+                    return '1d';
+                }
+                if (str_contains($kes, 'AU') || str_contains($ins, 'AU')) {
+                    return '1g';
+                }
+
+                return '1a';
             }
 
-            if ($kel === 'PURNAWIRAWAN' || str_contains($kel, 'PURNA') || str_contains($pen, 'PURNA') || str_contains($pa, 'PENSIUN')) {
-                return '3';
-            }
-
-            if (str_contains($pen, 'KEMENTERIAN') || str_contains($pen, 'KEMENTRIAN') || str_contains($kel, 'KEMENTERIAN') || str_contains($kel, 'KEMENTRIAN')) {
-                if (str_contains($kel, 'PPPK') || str_contains($pa, 'PPPK')) {
+            // 3. BPJS KEMENTERIAN (Cek kolom KELOMPOK: PPPK DINAS -> 1j, PPPK KEMENTERIAN -> 5, lainnya -> 4)
+            if (str_contains($pen, 'KEMENTERIAN') || str_contains($pen, 'KEMENTRIAN')) {
+                if ($kel === 'PPPK DINAS' || str_contains($kel, 'PPPK DINAS') || str_contains($pa, 'PPPK DINAS')) {
+                    return '1j';
+                }
+                if ($kel === 'PPPK KEMENTERIAN' || $kel === 'PPPK KEMENTRIAN' || str_contains($kel, 'PPPK') || str_contains($pa, 'PPPK')) {
                     return '5';
                 }
 
                 return '4';
             }
 
-            if (str_contains($kel, 'PPPK KEMENT') || str_contains($kel, 'PPPK KEMHAN')) {
-                return '5';
+            // 4. BPJS POLRI (Cek kolom KELOMPOK masuk PNS POLRI atau KEL POLRI)
+            if (str_contains($pen, 'POLRI') || $kel === 'POLRI') {
+                if ($kel === 'PNS POLRI' || str_contains($kel, 'PNS') || str_contains($pa, 'PNS')) {
+                    return '2b';
+                }
+                if ($kel === 'KEL POLRI' || str_contains($kel, 'KEL') || str_contains($kat, 'KELUARGA') || str_contains($kat, 'ISTRI') || str_contains($kat, 'ANAK') || str_contains($kat, 'SUAMI')) {
+                    return '2c';
+                }
+
+                return '2a';
             }
 
-            if ($kel === 'BPJS PBI' || str_contains($kel, 'PBI') || str_contains($pen, 'PBI')) {
+            // 5. JENIS BPJS YANG LAIN SESUAIKAN DENGAN KOLOM 'JENIS PEMBAYARAN'
+            if (str_contains($pen, 'PURNAWIRAWAN')) {
+                return '3';
+            }
+            if (str_contains($pen, 'PBI')) {
                 return '6a';
             }
-            if (str_contains($kel, 'KETENAGAKERJAAN') || str_contains($pen, 'KETENAGAKERJAAN') || str_contains($pen, 'TENAGA KERJA')) {
+            if (str_contains($pen, 'KETENAGAKERJAAN') || str_contains($pen, 'TENAGA KERJA')) {
                 return '6c';
             }
-            if (str_contains($kel, 'BPJS') || str_contains($pen, 'BPJS') || str_contains($pen, 'MANDIRI') || str_contains($kel, 'MANDIRI')) {
+            if (str_contains($pen, 'MANDIRI')) {
                 return '6b';
             }
-
-            if (str_contains($pen, 'SWASTA') || str_contains($kel, 'SWASTA')) {
+            if (str_contains($pen, 'PEGAWAI SWASTA') || str_contains($pen, 'SWASTA')) {
                 return '7';
             }
-            if (str_contains($pen, 'RSPAD') || str_contains($pen, 'JAMINAN')) {
+            if (str_contains($pen, 'RSPAD') || str_contains($pen, 'YANSUS')) {
                 return '8';
             }
             if (str_contains($pen, 'BAKSOS')) {
                 return '9';
+            }
+
+            // Fallback untuk penjamin kosong
+            if ($pen === '' || $pen === '--') {
+                if (str_contains($kel, 'PURNA')) {
+                    return '3';
+                }
+                if (str_contains($kel, 'PBI')) {
+                    return '6a';
+                }
+                if (str_contains($kel, 'SWASTA')) {
+                    return '7';
+                }
+                if (str_contains($kel, 'MANDIRI')) {
+                    return '6b';
+                }
             }
 
             return '10';

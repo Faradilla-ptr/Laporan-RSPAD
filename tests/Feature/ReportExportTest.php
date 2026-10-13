@@ -2,6 +2,7 @@
 
 namespace Tests\Feature;
 
+use App\Models\RawVisit;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
@@ -78,5 +79,70 @@ class ReportExportTest extends TestCase
 
         $response->assertStatus(200);
         $response->assertHeader('content-type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+    }
+
+    public function test_puskesad_classification_rules()
+    {
+        // 1. Asabri masuk TNI AD
+        $vAsabri = new RawVisit(['jenis_penjamin' => 'ASABRI', 'kelompok' => 'PURNAWIRAWAN']);
+        $this->assertEquals('TNI AD', $vAsabri->status_puskesad);
+
+        // 2. BPJS DINAS ke 9 kelompok
+        $vAd = new RawVisit(['jenis_penjamin' => 'BPJS DINAS', 'kelompok' => 'AD']);
+        $this->assertEquals('TNI AD', $vAd->status_puskesad);
+
+        $vPnsAd = new RawVisit(['jenis_penjamin' => 'BPJS DINAS', 'kelompok' => 'PNS AD']);
+        $this->assertEquals('PNS AD', $vPnsAd->status_puskesad);
+
+        $vKelAd = new RawVisit(['jenis_penjamin' => 'BPJS DINAS', 'kelompok' => 'KEL AD']);
+        $this->assertEquals('KEL AD', $vKelAd->status_puskesad);
+
+        $vAl = new RawVisit(['jenis_penjamin' => 'BPJS DINAS', 'kelompok' => 'AL']);
+        $this->assertEquals('TNI AL', $vAl->status_puskesad);
+
+        $vPnsAl = new RawVisit(['jenis_penjamin' => 'BPJS DINAS', 'kelompok' => 'PNS AL']);
+        $this->assertEquals('PNS AL', $vPnsAl->status_puskesad);
+
+        $vKelAl = new RawVisit(['jenis_penjamin' => 'BPJS DINAS', 'kelompok' => 'KEL AL']);
+        $this->assertEquals('KEL AL', $vKelAl->status_puskesad);
+
+        $vAu = new RawVisit(['jenis_penjamin' => 'BPJS DINAS', 'kelompok' => 'AU']);
+        $this->assertEquals('TNI AU', $vAu->status_puskesad);
+
+        $vPnsAu = new RawVisit(['jenis_penjamin' => 'BPJS DINAS', 'kelompok' => 'PNS AU']);
+        $this->assertEquals('PNS AU', $vPnsAu->status_puskesad);
+
+        $vKelAu = new RawVisit(['jenis_penjamin' => 'BPJS DINAS', 'kelompok' => 'KEL AU']);
+        $this->assertEquals('KEL AU', $vKelAu->status_puskesad);
+
+        // 3. BPJS KEMENTERIAN
+        $vPppkDinas = new RawVisit(['jenis_penjamin' => 'BPJS KEMENTRIAN', 'kelompok' => 'PPPK DINAS']);
+        $this->assertEquals('PPPK DINAS', $vPppkDinas->status_puskesad);
+
+        $vPppkKemen = new RawVisit(['jenis_penjamin' => 'BPJS KEMENTERIAN', 'kelompok' => 'PPPK KEMENTERIAN']);
+        $this->assertEquals('PPPK KEMENTERIAN', $vPppkKemen->status_puskesad);
+
+        $vJknKemen = new RawVisit(['jenis_penjamin' => 'BPJS KEMENTERIAN', 'kelompok' => 'PNS KEMHAN/TNI']);
+        $this->assertEquals('JKN KEMENTERIAN', $vJknKemen->status_puskesad);
+
+        // 4. BPJS POLRI
+        $vPolri = new RawVisit(['jenis_penjamin' => 'BPJS POLRI', 'kelompok' => 'POLRI']);
+        $this->assertEquals('POLRI', $vPolri->status_puskesad);
+
+        $vPnsPolri = new RawVisit(['jenis_penjamin' => 'BPJS POLRI', 'kelompok' => 'PNS POLRI']);
+        $this->assertEquals('PNS POLRI', $vPnsPolri->status_puskesad);
+
+        $vKelPolri = new RawVisit(['jenis_penjamin' => 'BPJS POLRI', 'kelompok' => 'KEL POLRI']);
+        $this->assertEquals('KEL POLRI', $vKelPolri->status_puskesad);
+
+        // 5. Penjamin Lain
+        $vPurna = new RawVisit(['jenis_penjamin' => 'BPJS PURNAWIRAWAN', 'kelompok' => 'AD']);
+        $this->assertEquals('JKN PURNAWIRAWAN', $vPurna->status_puskesad);
+
+        $vPbi = new RawVisit(['jenis_penjamin' => 'BPJS PBI', 'kelompok' => 'AD']);
+        $this->assertEquals('PBI', $vPbi->status_puskesad);
+
+        $vMandiri = new RawVisit(['jenis_penjamin' => 'BPJS MANDIRI', 'kelompok' => 'AD']);
+        $this->assertEquals('MANDIRI', $vMandiri->status_puskesad);
     }
 }

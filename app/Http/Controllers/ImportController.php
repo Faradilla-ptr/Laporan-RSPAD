@@ -529,23 +529,55 @@ class ImportController extends Controller
      */
     private function deriveKelompok($kelompokRaw, $jenisPenjamin, $pangkat, $instansi, $kategori, $kesatuan)
     {
-        $kel = trim(strtoupper($kelompokRaw));
+        $kel = trim(strtoupper((string) $kelompokRaw));
+        $p = strtoupper(trim((string) $jenisPenjamin));
+        $pa = strtoupper(trim((string) $pangkat));
+        $ins = strtoupper(trim((string) $instansi));
+        $kat = strtoupper(trim((string) $kategori));
+        $kes = strtoupper(trim((string) $kesatuan));
+
         // Jika kolom kelompok mentah pada Excel sudah memiliki nilai yang jelas
-        if (! empty($kel) && ! in_array($kel, ['--', 'TIDAK ADA', 'NULL'])) {
+        if (! empty($kel) && ! in_array($kel, ['--', 'TIDAK ADA', 'NULL', '-'])) {
             if (in_array($kel, [
                 'AD', 'AL', 'AU', 'KEL AD', 'KEL AL', 'KEL AU',
                 'PNS AD', 'PNS AL', 'PNS AU', 'MILITER TNI AD', 'KELUARGA MILITER',
-                'PNS KEMHAN/TNI', 'PPPK DINAS', 'PPPK KEMENTRIAN', 'BPJS PBI',
-                'BPJS MANDIRI / SWASTA', 'UMUM / TUNAI', 'PURNAWIRAWAN', 'POLRI',
+                'PNS KEMHAN/TNI', 'KELUARGA PNS', 'PPPK DINAS', 'PPPK KEMENTERIAN', 'PPPK KEMENTRIAN',
+                'PNS POLRI', 'KEL POLRI', 'POLRI', 'BPJS PBI',
+                'BPJS MANDIRI / SWASTA', 'UMUM / TUNAI', 'PURNAWIRAWAN',
             ])) {
                 return $kel;
             }
 
-            if (str_contains($kel, 'MILITER') || str_contains($kel, 'TNI AD') || $kel === 'TNI AD') {
+            if ($kel === 'TNI AD') {
+                return 'AD';
+            }
+            if ($kel === 'TNI AL') {
+                return 'AL';
+            }
+            if ($kel === 'TNI AU') {
+                return 'AU';
+            }
+            if (str_contains($kel, 'PPPK DINAS')) {
+                return 'PPPK DINAS';
+            }
+            if (str_contains($kel, 'PPPK KEMENT')) {
+                return 'PPPK KEMENTERIAN';
+            }
+            if (str_contains($kel, 'POLRI')) {
+                if (str_contains($kel, 'PNS')) {
+                    return 'PNS POLRI';
+                }
+                if (str_contains($kel, 'KEL')) {
+                    return 'KEL POLRI';
+                }
+
+                return 'POLRI';
+            }
+            if (str_contains($kel, 'MILITER') || str_contains($kel, 'TNI AD')) {
                 return 'MILITER TNI AD';
             }
             if (str_contains($kel, 'KEL') && (str_contains($kel, 'AD') || str_contains($kel, 'MILITER'))) {
-                return 'KELUARGA MILITER';
+                return 'KEL AD';
             }
             if (str_contains($kel, 'PNS') && ! str_contains($kel, 'KEL')) {
                 return 'PNS KEMHAN/TNI';
@@ -569,35 +601,83 @@ class ImportController extends Controller
             return $kel;
         }
 
-        // Jika kolom kelompok kosong, turunkan klasifikasi dari kolom-kolom identitas penjamin
-        $p = strtoupper($jenisPenjamin);
-        $pa = strtoupper($pangkat);
-        $ins = strtoupper($instansi);
-        $kat = strtoupper($kategori);
-        $kes = strtoupper($kesatuan);
+        // Jika kolom kelompok kosong, turunkan klasifikasi dari kolom identitas penjamin sesuai juknis
+        // 1. Khusus ASABRI dimasukkan ke BPJS Dinas Kelompok AD
+        if (str_contains($p, 'ASABRI')) {
+            return 'AD';
+        }
 
-        if (str_contains($p, 'PBI')) {
-            return 'BPJS PBI';
+        // 2. BPJS DINAS
+        if (str_contains($p, 'DINAS')) {
+            $isKel = str_contains($kat, 'KELUARGA') || str_contains($kat, 'ISTRI') || str_contains($kat, 'ANAK') || str_contains($kat, 'SUAMI');
+            $isPns = str_contains($pa, 'PNS') || str_contains($ins, 'PNS') || str_contains($pa, 'III/') || str_contains($pa, 'IV/');
+
+            if (str_contains($kes, 'AL') || str_contains($ins, 'AL')) {
+                if ($isKel) {
+                    return 'KEL AL';
+                }
+                if ($isPns) {
+                    return 'PNS AL';
+                }
+
+                return 'AL';
+            }
+            if (str_contains($kes, 'AU') || str_contains($ins, 'AU')) {
+                if ($isKel) {
+                    return 'KEL AU';
+                }
+                if ($isPns) {
+                    return 'PNS AU';
+                }
+
+                return 'AU';
+            }
+            if ($isKel) {
+                return 'KEL AD';
+            }
+            if ($isPns) {
+                return 'PNS AD';
+            }
+
+            return 'AD';
         }
-        if (str_contains($p, 'MANDIRI') || str_contains($p, 'SWASTA')) {
-            return 'BPJS MANDIRI / SWASTA';
-        }
-        if (str_contains($p, 'PURNA') || str_contains($kat, 'PURNA') || str_contains($pa, 'PENSIUN')) {
-            return 'PURNAWIRAWAN';
-        }
-        if (str_contains($p, 'PNS') || str_contains($kat, 'PNS') || str_contains($ins, 'KEMHAN') || str_contains($pa, 'III/') || str_contains($pa, 'IV/') || str_contains($pa, 'II/') || str_contains($pa, 'I/')) {
-            if (str_contains($kat, 'KELUARGA') || str_contains($p, 'KELUARGA') || str_contains($kat, 'ISTRI') || str_contains($kat, 'ANAK') || str_contains($kat, 'SUAMI')) {
+
+        // 3. BPJS KEMENTERIAN
+        if (str_contains($p, 'KEMENTERIAN') || str_contains($p, 'KEMENTRIAN')) {
+            if (str_contains($pa, 'PPPK DINAS')) {
+                return 'PPPK DINAS';
+            }
+            if (str_contains($pa, 'PPPK')) {
+                return 'PPPK KEMENTERIAN';
+            }
+            if (str_contains($kat, 'KELUARGA') || str_contains($kat, 'ISTRI') || str_contains($kat, 'ANAK')) {
                 return 'KELUARGA PNS';
             }
 
             return 'PNS KEMHAN/TNI';
         }
-        if (str_contains($p, 'MILITER') || str_contains($p, 'DINAS') || str_contains($kat, 'MILITER') || str_contains($ins, 'TNI') || ! empty($pa)) {
-            if (str_contains($kat, 'KELUARGA') || str_contains($p, 'KELUARGA') || str_contains($kat, 'ISTRI') || str_contains($kat, 'ANAK') || str_contains($kat, 'SUAMI') || str_contains($kel, 'KEL AD')) {
-                return 'KELUARGA MILITER';
+
+        // 4. BPJS POLRI
+        if (str_contains($p, 'POLRI')) {
+            if (str_contains($pa, 'PNS') || str_contains($ins, 'PNS')) {
+                return 'PNS POLRI';
+            }
+            if (str_contains($kat, 'KELUARGA') || str_contains($kat, 'ISTRI') || str_contains($kat, 'ANAK')) {
+                return 'KEL POLRI';
             }
 
-            return 'MILITER TNI AD';
+            return 'POLRI';
+        }
+
+        // 5. Penjamin lainnya
+        if (str_contains($p, 'PURNA') || str_contains($kat, 'PURNA') || str_contains($pa, 'PENSIUN')) {
+            return 'PURNAWIRAWAN';
+        }
+        if (str_contains($p, 'PBI')) {
+            return 'BPJS PBI';
+        }
+        if (str_contains($p, 'MANDIRI') || str_contains($p, 'SWASTA')) {
+            return 'BPJS MANDIRI / SWASTA';
         }
 
         // Kategori cadangan jika tidak ada kondisi yang terpenuhi
