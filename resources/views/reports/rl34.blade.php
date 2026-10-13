@@ -110,7 +110,7 @@
 <!-- Deduplicated Patients Verification Table -->
 <div class="card-panel p-4">
     <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
-        <h6 class="fw-bold mb-0" style="color: var(--palette-5);">Daftar Pasien Unik (RM Unik Periode {{ $availableMonths[$month] ?? $month }} {{ $year }})</h6>
+        <h6 class="fw-bold mb-0" style="color: var(--palette-5);">Daftar Pasien (Pengunjung Periode {{ $availableMonths[$month] ?? $month }} {{ $year }})</h6>
         <span class="badge badge-palette px-2 py-1 font-monospace" style="font-size: 0.775rem;">TOTAL: {{ number_format($patients->total()) }} Pasien</span>
     </div>
 
